@@ -34,12 +34,12 @@ import { optimizeCloudinaryVideoUrl } from "@shared/utils/cloudinaryUtils";
 const tabs = [
   {
     id: "food",
-    name: "SuperfastFood",
+    name: "AETMADFOOD",
     icon: "https://cdn-icons-png.flaticon.com/512/3075/3075977.png",
   },
   {
     id: "quick",
-    name: "SuperfastMart",
+    name: "AETMADMART",
     icon: "https://cdn-icons-png.flaticon.com/512/3724/3724720.png",
     badge: "15 mins",
   },

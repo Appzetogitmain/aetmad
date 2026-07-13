@@ -893,7 +893,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                           : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50"
                       )}
                     >
-                      SuperfastFood
+                      AETMADFOOD
                     </button>
                   )}
                   {enabledModules.quickCommerce && (!adminInfo?.servicesAccess || adminInfo.role === 'ADMIN' || adminInfo.servicesAccess.includes('quickCommerce')) && (
@@ -908,7 +908,7 @@ export default function AdminSidebar({ isOpen = false, onClose, onCollapseChange
                           : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-200/50"
                       )}
                     >
-                      SuperfastMart
+                      AETMADMART
                     </button>
                   )}
 
