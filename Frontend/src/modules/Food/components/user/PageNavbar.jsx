@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useRef, useMemo } from "react"
-import { ChevronDown, ShoppingCart, Wallet } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { ChevronDown, ShoppingCart, Wallet, Navigation } from "lucide-react"
 import { Button } from "@food/components/ui/button"
 import { useLocation } from "@food/hooks/useLocation"
 import { useCart } from "@food/context/CartContext"
@@ -1010,67 +1011,90 @@ export default function PageNavbar({
           </Link>
         )}
 
-        {/* Center: Location Selector (Centered) */}
-        <div className="flex-1 flex items-center justify-center min-w-0 absolute left-1/2 -translate-x-1/2">
-          <Button
-            variant="ghost"
-            onClick={handleLocationClick}
-            disabled={loading}
-            className="h-auto px-0 py-0 hover:bg-transparent transition-colors flex-shrink-0"
-          >
-            {loading ? (
-              <span className={`text-sm font-bold ${textColorClass}`}>
-                Loading...
-              </span>
-            ) : (
-              <div className="flex flex-col items-center min-w-0">
-                <div className="flex items-center justify-center gap-1">
-                  <span className={`text-sm sm:text-base md:text-lg font-bold ${textColorClass} truncate max-w-[140px] sm:max-w-[200px]`}>
-                    {mainLocationName}
-                  </span>
-                  <ChevronDown className={`h-3 w-3 sm:h-4 sm:w-4 ${textColorClass} flex-shrink-0`} strokeWidth={2.5} />
-                </div>
-                {locationSubText && (
-                  <span className={`text-[10px] sm:text-xs font-medium ${textColorClass}/80 truncate max-w-[140px] sm:max-w-[200px] text-center`}>
-                    {locationSubText}
-                  </span>
-                )}
-              </div>
-            )}
-          </Button>
+        {/* Left: Location Selector */}
+        <div className="flex-1 flex items-center justify-start min-w-0">
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 min-w-0">
+            <button
+              type="button"
+              onClick={handleLocationClick}
+              disabled={loading}
+              className="flex items-start gap-2 cursor-pointer flex-1 min-w-0 bg-transparent border-0 p-0 text-left outline-none hover:opacity-80 transition-opacity"
+            >
+              {loading ? (
+                <span className={`text-sm font-bold ${textColorClass}`}>
+                  Loading...
+                </span>
+              ) : (
+                <>
+                  <Navigation
+                    className={`h-[14px] w-[14px] rotate-[15deg] mt-[5px] shrink-0 ${textColor === "white" ? "text-[#D4AF37] fill-[#D4AF37]" : "text-[#0B3122] fill-[#0B3122]"}`}
+                    strokeWidth={2.5}
+                  />
+                  <div className="flex min-w-0 max-w-[190px] sm:max-w-[250px] flex-col">
+                    <div className="flex items-center gap-[3px]">
+                      <span className={`truncate text-[16px] font-serif font-bold tracking-wide ${textColorClass} drop-shadow-sm`}>
+                        {mainLocationName}
+                      </span>
+                      <motion.div animate={{ y: [0, 2, 0] }} transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}>
+                        <ChevronDown className={`h-[14px] w-[14px] shrink-0 ${textColorClass} opacity-80`} strokeWidth={3} />
+                      </motion.div>
+                    </div>
+                    {locationSubText && (
+                      <span className={`max-w-[190px] sm:max-w-[250px] truncate text-[11px] font-light tracking-wide ${textColor === "white" ? "text-white/80" : "text-gray-500"}`}>
+                        {locationSubText}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </button>
+          </motion.div>
         </div>
 
         {/* Right: Actions (Wallet & Cart) */}
         <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
           <Link to="/user/wallet">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 hover:opacity-80 transition-opacity"
-              title="Wallet"
-            >
-              <div className={`h-full w-full rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}>
-                <Wallet className={`h-4 w-4 sm:h-5 sm:w-5 ${textColor === "white" ? "text-black dark:text-white" : "text-gray-900 dark:text-white"}`} strokeWidth={2} />
-              </div>
-            </Button>
+            <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.9 }}>
+              <button
+                type="button"
+                className={`relative h-[38px] w-[38px] rounded-full backdrop-blur-md flex items-center justify-center shadow-md transition-all ${
+                  textColor === "white" 
+                    ? "bg-white/10 border border-[#D4AF37]/30 hover:bg-white/20" 
+                    : "bg-white border border-gray-200 hover:bg-gray-50"
+                }`}
+                title="Wallet"
+              >
+                <Wallet className={`h-[19px] w-[19px] ${textColor === "white" ? "text-white/90" : "text-gray-900"}`} strokeWidth={1.5} />
+              </button>
+            </motion.div>
           </Link>
 
           <Link to="/user/cart">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 hover:opacity-80 transition-opacity"
-              title="Cart"
-            >
-              <div className={`h-full w-full rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center`}>
-                <ShoppingCart className={`h-4 w-4 sm:h-5 sm:w-5 ${textColor === "white" ? "text-black dark:text-white" : "text-gray-900 dark:text-white"}`} strokeWidth={2} />
-              </div>
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white">
-                  <span className="text-[9px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
-                </span>
-              )}
-            </Button>
+            <motion.div whileHover={{ scale: 1.1, rotate: -5 }} whileTap={{ scale: 0.9 }}>
+              <button
+                type="button"
+                className={`relative h-[38px] w-[38px] rounded-full backdrop-blur-md flex items-center justify-center shadow-md transition-all ${
+                  textColor === "white" 
+                    ? "bg-white/10 border border-[#D4AF37]/30 hover:bg-white/20" 
+                    : "bg-white border border-gray-200 hover:bg-gray-50"
+                }`}
+                title="Cart"
+              >
+                <ShoppingCart className={`h-[20px] w-[20px] ${textColor === "white" ? "text-white/90" : "text-gray-900"}`} strokeWidth={1.5} />
+                <AnimatePresence>
+                  {cartCount > 0 && (
+                    <motion.span 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center ring-2 ring-white shadow-sm"
+                    >
+                      <span className="text-[9px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            </motion.div>
           </Link>
 
           {/* Profile - Only shown if showProfile is true */}

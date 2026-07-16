@@ -339,14 +339,14 @@ export default function Home() {
 
   // --- Render ---
   return (
-    <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6 overflow-x-clip">
+    <div className="relative min-h-screen bg-white dark:bg-[#0a0a0a] pb-16 md:pb-6 overflow-x-clip" style={{ "--primary": "#0B3122", "--color-primary": "#0B3122", "--primary-theme": "#0B3122" }}>
       <div className="md:hidden relative overflow-x-clip z-[50]">
         {!state.isBootstrapped ? (
           <div className="px-4 pt-6 pb-4">
             <div className="h-10 w-48 bg-slate-100 animate-pulse rounded-xl mb-6" />
             <div className="h-14 w-full bg-slate-100 animate-pulse rounded-2xl" />
           </div>
-        ) : (
+        ) : activeTab !== "quick" ? (
           <HomeHeader
             activeTab={activeTab}
             setActiveTab={handleTabChange}
@@ -362,11 +362,18 @@ export default function Home() {
             quickThemeColor={quickThemeColor}
             quickSecondaryThemeColor={quickSecondaryThemeColor}
             hideExtras={hideExtras}
-            bannerComponent={
-              <div className="h-[130px] sm:h-36 md:h-44 mt-3 relative z-10 w-full bg-transparent" />
+            exploreMoreComponent={
+              <Suspense fallback={null}>
+                <ExploreMoreSection
+                  exploreMoreHeading={landing.heading}
+                  showExploreSkeleton={landing.loading}
+                  finalExploreItems={finalExploreItemsFiltered}
+                  backendOrigin={BACKEND_ORIGIN}
+                />
+              </Suspense>
             }
           />
-        )}
+        ) : null}
       </div>
 
       <AnimatePresence initial={false} mode="wait">
@@ -393,18 +400,6 @@ export default function Home() {
             transition={{ duration: 0.16, ease: "easeOut" }}
             className="bg-white dark:bg-[#0a0a0a]"
           >
-            <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
-              <div className="sticky top-[66px] z-[40] md:relative md:top-auto bg-white dark:bg-[#0a0a0a] border-b border-slate-100 dark:border-white/5 transition-all">
-                <CategoryRail
-                  displayCategories={userPreferredCategories}
-                  showCategorySkeleton={categories.loading}
-                  navigate={navigate}
-                  setShowAllCategoriesModal={setShowAllCategoriesModal}
-                  backendOrigin={BACKEND_ORIGIN}
-                />
-              </div>
-            </Suspense>
-
             {(banners.loading || (banners?.images?.length > 0)) && (
               <Suspense fallback={<HeroBannerSkeleton className="h-full w-full px-4 mt-3" />}>
                 <section className="content-auto px-4 pt-3 sm:pt-4 lg:pt-5 mb-4 sm:mb-6">
@@ -424,6 +419,18 @@ export default function Home() {
               </Suspense>
             )}
 
+            <Suspense fallback={<CategoryChipRowSkeleton className="py-1" />}>
+              <div className="sticky top-[66px] z-[40] md:relative md:top-auto bg-white dark:bg-[#0a0a0a] border-b border-slate-100 dark:border-white/5 transition-all">
+                <CategoryRail
+                  displayCategories={userPreferredCategories || categories.display || []}
+                  showCategorySkeleton={categories.loading}
+                  navigate={navigate}
+                  setShowAllCategoriesModal={setShowAllCategoriesModal}
+                  backendOrigin={BACKEND_ORIGIN}
+                />
+              </div>
+            </Suspense>
+
             <Suspense fallback={null}>
               <SortFilterSection
                 activeFilters={state.activeFilters}
@@ -434,15 +441,6 @@ export default function Home() {
 
             <Suspense fallback={null}>
               <RecommendationsSection fallbackRestaurants={meta.recommended} zoneId={effectiveZoneId} />
-            </Suspense>
-
-            <Suspense fallback={null}>
-              <ExploreMoreSection
-                exploreMoreHeading={landing.heading}
-                showExploreSkeleton={landing.loading}
-                finalExploreItems={finalExploreItemsFiltered}
-                backendOrigin={BACKEND_ORIGIN}
-              />
             </Suspense>
 
             {/* Custom cake promo banner removed */}

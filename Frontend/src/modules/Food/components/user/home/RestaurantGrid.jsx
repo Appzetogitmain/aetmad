@@ -173,10 +173,10 @@ const RestaurantGrid = memo(({
     <section className="content-auto space-y-0 pb-8 pt-3 sm:pt-4 md:pb-10 lg:pt-6">
       <div className="mb-4 px-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+          <h2 className="text-[11px] font-serif font-bold uppercase tracking-widest text-slate-400 drop-shadow-sm">
             {filteredRestaurants.length} Restaurants Delivering to You
           </h2>
-          <span className="text-sm font-medium text-gray-500">Featured</span>
+          <span className="text-[20px] font-serif font-bold text-[#0B3122] dark:text-white tracking-wide">Featured</span>
         </div>
       </div>
       

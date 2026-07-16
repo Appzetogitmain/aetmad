@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { ArrowLeft, Plus, Share2, UtensilsCrossed, Store, X } from "lucide-react"
+import { motion } from "framer-motion"
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import useAppBackNavigation from "@food/hooks/useAppBackNavigation"
@@ -70,13 +71,32 @@ export default function Collections() {
       </button>
 
       {/* Banner Section - Clean without dark overlay */}
-      <div className="relative w-full overflow-hidden min-h-[25vh] md:min-h-[30vh] bg-gradient-to-b from-amber-50 to-white">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={collectionsBanner}
-            alt="Your Collections"
-            className="w-full h-full object-cover"
+      <div className="relative w-full overflow-hidden min-h-[25vh] md:min-h-[30vh] bg-[#0B3122]">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* Elegant Dotted Grid */}
+          <div className="absolute inset-0 opacity-[0.15]" style={{
+              backgroundImage: 'radial-gradient(#D4AF37 1px, transparent 1px)',
+              backgroundSize: '20px 20px'
+          }} />
+          
+          {/* Slow Diagonal Luxury Shimmer (Glass Reflection) */}
+          <motion.div 
+            className="absolute -inset-y-32 w-[200%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-30deg]"
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "linear", repeatDelay: 1.5 }}
           />
+          
+          {/* Edge Shadow to frame it nicely */}
+          <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)] pointer-events-none" />
+
+          {/* Luxury Typography Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+            <span className="text-[10px] sm:text-xs font-bold tracking-[0.3em] text-[#D4AF37] uppercase mb-2 drop-shadow-md">Curated For You</span>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black text-white text-center tracking-tight drop-shadow-lg px-4 leading-tight">
+              Your Collections
+            </h1>
+            <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mt-4 opacity-70" />
+          </div>
         </div>
       </div>
 

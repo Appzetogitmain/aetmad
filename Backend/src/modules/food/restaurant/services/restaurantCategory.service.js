@@ -181,19 +181,9 @@ export async function listPublicCategories(query = {}) {
         return cached.data;
     }
 
-    const approvedCategoryIds = await FoodItem.distinct('categoryId', {
-        approvalStatus: 'approved',
-        categoryId: { $ne: null }
-    });
-
-    if (!approvedCategoryIds.length) {
-        const result = { categories: [], total: 0, page, limit };
-        publicCategoriesCache.set(cacheKey, { data: result, lastFetched: now });
-        return result;
-    }
+    // Bypassing empty category filter as per user request to see all added categories
 
     const filter = {
-        _id: { $in: approvedCategoryIds },
         isActive: true,
         $and: [{ $or: GLOBAL_CATEGORY_FILTER }, { $or: APPROVED_CATEGORY_FILTER }]
     };

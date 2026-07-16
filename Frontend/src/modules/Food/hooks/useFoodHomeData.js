@@ -15,7 +15,7 @@ let globalHomeCache = {
   lastFetched: 0,
 };
 
-const CACHE_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_EXPIRY_MS = 1000; // 5 minutes
 
 export const useFoodHomeData = ({ 
   zoneId, 

@@ -14,6 +14,7 @@ import PageNavbar from "@food/components/user/PageNavbar"
 import offerImage from "@food/assets/offerimage.png"
 import AddToCartAnimation from "@food/components/user/AddToCartAnimation"
 import OptimizedImage from "@food/components/OptimizedImage"
+import foodPattern from "@food/assets/food_pattern_background.png"
 import api from "@food/api"
 import { restaurantAPI, adminAPI } from "@food/api"
 import { isModuleAuthenticated } from "@food/utils/auth"
@@ -841,7 +842,13 @@ export default function Under250() {
 
   return (
 
-    <div className={`relative min-h-screen bg-white dark:bg-[#0a0a0a] ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
+    <div className={`relative min-h-screen bg-[#FCFAf5] dark:bg-[#0a0a0a] ${shouldShowGrayscale ? 'grayscale opacity-75' : ''}`}>
+      {/* Background Texture Overlay */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 opacity-[0.03] dark:opacity-[0.05] mix-blend-multiply dark:mix-blend-overlay"
+        style={{ backgroundImage: `url(${foodPattern})`, backgroundSize: '200px' }}
+      />
+      
       <div
         ref={stickyHeaderRef}
         className={`fixed top-0 left-0 right-0 z-40 w-full md:hidden transition-all duration-300 ${hasScrolledPastBanner
@@ -885,8 +892,8 @@ export default function Under250() {
                 </div>
               ))}
             </div>
-            {/* Dark gradient overlay for header text readability */}
-            <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+            {/* Dark gradient overlay for header text readability and luxury feel */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#FCFAf5] via-black/20 to-black/60 dark:from-[#0a0a0a] pointer-events-none" />
             {bannerImages.length > 1 && (
               <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/25 px-3 py-1.5 backdrop-blur-sm">
                 {bannerImages.map((_, index) => (
@@ -907,9 +914,36 @@ export default function Under250() {
             )}
           </div>
         )}
+        
+        {/* Fallback Banner Background when no images exist */}
         {bannerImages.length === 0 && !loadingBanner && (
-          <div className="absolute top-0 left-0 right-0 bottom-0 z-0 bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 overflow-hidden" />
+          <div className="absolute inset-0 z-0 bg-[#0B3122] overflow-hidden">
+            {/* Elegant Dotted Grid */}
+            <div className="absolute inset-0 opacity-[0.15]" style={{
+                backgroundImage: 'radial-gradient(#D4AF37 1px, transparent 1px)',
+                backgroundSize: '20px 20px'
+            }} />
+            
+            {/* Slow Diagonal Luxury Shimmer (Glass Reflection) */}
+            <motion.div 
+              className="absolute -inset-y-32 w-[200%] bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-[-30deg]"
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear", repeatDelay: 1.5 }}
+            />
+            
+            {/* Edge Shadow to frame it nicely */}
+            <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.6)] pointer-events-none" />
+          </div>
         )}
+
+        {/* ALWAYS show the Luxury Typography Overlay so the title is never blank */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 pt-16">
+          <span className="text-[10px] sm:text-xs font-bold tracking-[0.3em] text-[#D4AF37] uppercase mb-2 drop-shadow-md">Aetmad Exclusive</span>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black text-white text-center tracking-tight drop-shadow-lg px-4 leading-tight">
+            Curated Under <br className="sm:hidden" /><span className="text-[#F3E5AB]">{RUPEE_SYMBOL}250</span>
+          </h1>
+          <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mt-4 opacity-70" />
+        </div>
       </div>
 
       {/* Content Section */}
@@ -928,48 +962,42 @@ export default function Under250() {
             {/* All Button */}
             <div className="flex-shrink-0 cursor-pointer" onClick={() => setActiveCategory(null)}>
               <motion.div
-                className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28"
-                whileHover={{ scale: 1.1, y: -4 }}
+                className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-all border shadow-sm backdrop-blur-sm ${!activeCategory ? 'bg-[#0B3122] text-[#D4AF37] border-[#D4AF37]' : 'bg-white/70 dark:bg-[#1a1a1a]/80 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800'}`}
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                <div className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md transition-all ${!activeCategory ? 'ring-2 ring-[var(--primary-theme)] ring-offset-2' : ''}`}>
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0">
                   <OptimizedImage
                     src={offerImage}
                     alt="All"
-                    className="w-full h-full bg-white rounded-full"
-                    objectFit="cover"
-                    sizes="(max-width: 640px) 62px, (max-width: 768px) 96px, 112px"
+                    className="w-full h-full object-cover"
                     placeholder="blur"
                   />
                 </div>
-                <span className={`text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 text-center pb-1 ${!activeCategory ? 'text-[var(--primary-theme)]' : ''}`}>
+                <span className="text-sm md:text-base font-semibold tracking-wide pr-2">
                   All
                 </span>
               </motion.div>
             </div>
-            {categories.map((category, index) => {
+            {categories.map((category) => {
               const isActive = activeCategory === category.id
               return (
                 <div key={category.id} className="flex-shrink-0 cursor-pointer" onClick={() => setActiveCategory(isActive ? null : category.id)}>
                     <motion.div
-                      className="flex flex-col items-center gap-2 w-[62px] sm:w-24 md:w-28"
-                      whileHover={{ scale: 1.1, y: -4 }}
+                      className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full transition-all border shadow-sm backdrop-blur-sm ${isActive ? 'bg-[#0B3122] text-[#D4AF37] border-[#D4AF37]' : 'bg-white/70 dark:bg-[#1a1a1a]/80 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800'}`}
+                      whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
                     >
-                      <div className={`w-14 h-14 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-md transition-all ${isActive ? 'ring-2 ring-[var(--primary-theme)] ring-offset-2' : ''}`}>
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden shrink-0 bg-white">
                         <OptimizedImage
                           src={category.image}
                           alt={category.name}
-                          className="w-full h-full bg-white rounded-full"
-                          objectFit="cover"
-                          sizes="(max-width: 640px) 62px, (max-width: 768px) 96px, 112px"
+                          className="w-full h-full object-cover"
                           placeholder="blur"
                         />
                       </div>
-                      <span className={`text-xs sm:text-sm md:text-base font-semibold text-gray-800 dark:text-gray-200 text-center pb-1 ${isActive ? 'text-[var(--primary-theme)]' : ''}`}>
-                        {category.name.length > 7 ? `${category.name.slice(0, 7)}...` : category.name}
+                      <span className="text-sm md:text-base font-semibold tracking-wide pr-2">
+                        {category.name}
                       </span>
                     </motion.div>
                 </div>
@@ -979,28 +1007,28 @@ export default function Under250() {
         </section>
 
         <section className="py-2 sm:py-3 md:py-4">
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               onClick={() => setShowSortPopup(true)}
-              className="h-8 sm:h-9 md:h-10 px-3 sm:px-4 md:px-5 rounded-md flex items-center gap-2 whitespace-nowrap flex-shrink-0 font-medium transition-all bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm md:text-base"
+              className="h-9 sm:h-10 md:h-11 px-4 sm:px-5 md:px-6 rounded-full flex items-center gap-2 flex-shrink-0 font-medium transition-all shadow-sm bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-800 hover:border-[#D4AF37]/50 text-gray-700 dark:text-gray-300"
             >
-              <ArrowDownUp className="h-4 w-4 md:h-5 md:w-5 rotate-90" />
-              <span className="text-sm md:text-base font-medium">
-                {selectedSort ? sortOptions.find(opt => opt.id === selectedSort)?.label : 'Sort'}
+              <ArrowDownUp className="h-4 w-4 text-[#D4AF37]" />
+              <span className="text-sm md:text-base">
+                {selectedSort ? sortOptions.find(opt => opt.id === selectedSort)?.label : 'Sort by'}
               </span>
-              <ChevronDown className="h-3 w-3 md:h-4 md:w-4" />
+              <ChevronDown className="h-3.5 w-3.5 opacity-60" />
             </Button>
             <Button
               variant="outline"
               onClick={() => setUnder30MinsFilter(!under30MinsFilter)}
-              className={`h-8 sm:h-9 md:h-10 px-3 sm:px-4 md:px-5 rounded-md flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 font-medium transition-all text-sm md:text-base ${under30MinsFilter
-                ? 'bg-[var(--primary-theme)] text-white border border-[var(--primary-theme)] hover:bg-[#a81e29]'
-                : 'bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300'
+              className={`h-9 sm:h-10 md:h-11 px-4 sm:px-5 md:px-6 rounded-full flex items-center gap-2 flex-shrink-0 font-medium transition-all shadow-sm ${under30MinsFilter
+                ? 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-white border-transparent'
+                : 'bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-800 hover:border-[#D4AF37]/50 text-gray-700 dark:text-gray-300'
                 }`}
             >
-              <Timer className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />
-              <span className="text-xs sm:text-sm md:text-base font-medium">Under 30 mins</span>
+              <Timer className={`h-4 w-4 ${under30MinsFilter ? 'text-white' : 'text-[#D4AF37]'}`} />
+              <span className="text-sm md:text-base whitespace-nowrap">Express (30m)</span>
             </Button>
           </div>
         </section>
@@ -1066,7 +1094,7 @@ export default function Under250() {
                         return (
                           <motion.div
                             key={item.id}
-                            className={`flex-shrink-0 w-[200px] sm:w-[220px] md:w-full bg-white dark:bg-[#1a1a1a] rounded-lg md:rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden ${shouldShowGrayscale || isRestaurantOffline ? 'cursor-default' : 'cursor-pointer'}`}
+                            className={`flex-shrink-0 w-[200px] sm:w-[220px] md:w-full bg-white dark:bg-[#121212] rounded-[24px] border border-[#F3E5AB]/30 dark:border-gray-800 overflow-hidden ${shouldShowGrayscale || isRestaurantOffline ? 'cursor-default' : 'cursor-pointer'}`}
                             onClick={() => {
                               if (!shouldShowGrayscale && !isRestaurantOffline) {
                                 handleItemClick(item, restaurant)
@@ -1075,16 +1103,16 @@ export default function Under250() {
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true, margin: "-50px" }}
-                            transition={{ duration: 0.4, delay: itemIndex * 0.05 }}
+                            transition={{ duration: 0.5, delay: itemIndex * 0.05, ease: "easeOut" }}
                             whileHover={{ y: -8, scale: 1.02 }}
-                            style={{ boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" }}
+                            style={{ boxShadow: "0 12px 40px -12px rgba(212, 175, 55, 0.15)" }}
                           >
                             {/* Item Image */}
                             <div className="relative w-full h-32 sm:h-36 md:h-40 lg:h-48 xl:h-52 overflow-hidden">
                               <motion.div
                                 className="absolute inset-0"
                                 whileHover={{ scale: 1.1 }}
-                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                transition={{ duration: 0.7, ease: "easeOut" }}
                               >
                                 <OptimizedImage
                                   src={item.image}
@@ -1098,50 +1126,47 @@ export default function Under250() {
                               </motion.div>
                               {/* Gradient Overlay on Hover */}
                               <motion.div
-                                className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"
-                                initial={{ opacity: 0 }}
+                                className="absolute inset-0 bg-gradient-to-t from-[#0B3122]/60 via-transparent to-transparent opacity-0 transition-opacity duration-300"
                                 whileHover={{ opacity: 1 }}
-                                transition={{ duration: 0.3 }}
                               />
                               {/* Veg Indicator */}
                               {item.isVeg && (
                                 <motion.div
-                                  className="absolute top-2 left-2 md:top-3 md:left-3 h-4 w-4 md:h-5 md:w-5 lg:h-6 lg:w-6 rounded border-2 border-green-600 bg-white flex items-center justify-center z-10"
-                                  whileHover={{ scale: 1.2, rotate: 5 }}
-                                  transition={{ duration: 0.2 }}
+                                  className="absolute top-3 left-3 md:top-4 md:left-4 h-6 w-6 rounded-md border-[2.5px] border-green-600 bg-white/90 backdrop-blur-sm flex items-center justify-center z-10 shadow-sm"
+                                  whileHover={{ scale: 1.1 }}
                                 >
-                                  <div className="h-2 w-2 md:h-2.5 md:w-2.5 lg:h-3 lg:w-3 rounded-full bg-green-600" />
+                                  <div className="h-2.5 w-2.5 rounded-full bg-green-600" />
                                 </motion.div>
                               )}
                             </div>
 
                             {/* Item Details */}
-                            <div className="p-3 md:p-4 lg:p-5">
-                              <div className="flex items-center gap-1 md:gap-2 mb-1 md:mb-2 lg:mb-3">
+                            <div className="p-4 md:p-5 lg:p-6 bg-gradient-to-b from-transparent to-white dark:to-[#121212]">
+                              <div className="flex items-start gap-2 mb-2 lg:mb-3">
                                 {item.isVeg && (
-                                  <div className="h-3 w-3 md:h-4 md:w-4 lg:h-5 lg:w-5 rounded border border-green-600 bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-                                    <div className="h-1.5 w-1.5 md:h-2 md:w-2 lg:h-2.5 lg:w-2.5 rounded-full bg-green-600" />
+                                  <div className="mt-1 flex-shrink-0 h-4 w-4 rounded-[3px] border-[1.5px] border-green-600 bg-green-50/50 flex items-center justify-center">
+                                    <div className="h-1.5 w-1.5 rounded-full bg-green-600" />
                                   </div>
                                 )}
-                                <span className="text-sm md:text-base lg:text-lg font-semibold text-gray-900 dark:text-white">
-                                  1 x {item.name}
+                                <span className="text-base md:text-lg lg:text-xl font-semibold text-gray-900 dark:text-white leading-tight line-clamp-2">
+                                  {item.name}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-base md:text-lg lg:text-xl xl:text-2xl font-bold text-gray-900 dark:text-white">
+                              <div className="flex items-center justify-between mt-4">
+                                <div className="flex flex-col">
+                                  {item.bestPrice && (
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#D4AF37] mb-0.5">Best price</span>
+                                  )}
+                                  <p className="text-lg md:text-xl lg:text-2xl font-black text-[#0B3122] dark:text-[#D4AF37]">
                                     {RUPEE_SYMBOL}{Math.round(item.price)}
                                   </p>
-                                  {item.bestPrice && (
-                                    <p className="text-xs md:text-sm lg:text-base text-gray-500 dark:text-gray-400">Best price</p>
-                                  )}
                                 </div>
                                 {quantity > 0 ? (
                                   <Link to="/user/cart" onClick={(e) => e.stopPropagation()}>
                                     <Button
                                       variant={"outline"}
                                       size="sm"
-                                      className="bg-[#FFF4EC] text-[var(--primary-theme)] border-[var(--primary-theme)] hover:bg-[var(--primary-theme)] hover:text-white h-7 md:h-8 lg:h-9 px-3 md:px-4 lg:px-5 text-xs md:text-sm lg:text-base"
+                                      className="bg-white text-[#D4AF37] border-[#D4AF37] hover:bg-[#D4AF37] hover:text-white h-8 md:h-9 lg:h-10 px-4 md:px-5 lg:px-6 rounded-full font-bold shadow-sm transition-all"
                                     >
                                       View cart
                                     </Button>
@@ -1151,9 +1176,9 @@ export default function Under250() {
                                     variant={"outline"}
                                     size="sm"
                                     disabled={shouldShowGrayscale || isRestaurantOffline}
-                                    className={`h-7 md:h-8 lg:h-9 px-3 md:px-4 lg:px-5 text-xs md:text-sm lg:text-base ${shouldShowGrayscale || isRestaurantOffline
+                                    className={`h-8 md:h-9 lg:h-10 px-4 md:px-5 lg:px-6 rounded-full font-bold shadow-sm transition-all ${shouldShowGrayscale || isRestaurantOffline
                                       ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-300 dark:border-gray-700 cursor-not-allowed opacity-50'
-                                      : 'bg-[#FFF4EC] text-[var(--primary-theme)] border-[var(--primary-theme)] hover:bg-[var(--primary-theme)] hover:text-white'
+                                      : 'bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-white border-transparent hover:shadow-md hover:scale-105'
                                       }`}
                                     onClick={(e) => {
                                       e.stopPropagation()
@@ -1162,7 +1187,7 @@ export default function Under250() {
                                       }
                                     }}
                                   >
-                                    Add
+                                    Add <Plus className="ml-1 h-4 w-4" />
                                   </Button>
                                 )}
                               </div>

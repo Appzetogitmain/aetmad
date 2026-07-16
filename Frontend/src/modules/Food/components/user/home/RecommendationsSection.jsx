@@ -84,7 +84,7 @@ const RecommendationsSection = memo(({ fallbackRestaurants, zoneId }) => {
 
   return (
     <motion.section
-      className="pt-2 pb-6 max-w-2xl mx-auto border-b border-slate-50 dark:border-neutral-800 animate-in fade-in duration-300"
+      className="pt-2 pb-2 max-w-2xl mx-auto border-b border-slate-50 dark:border-neutral-800 animate-in fade-in duration-300"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >

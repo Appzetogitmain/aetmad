@@ -54,6 +54,8 @@ import SavingsIcon from "@mui/icons-material/Savings";
 import { getIconSvg } from "@/shared/constants/categoryIcons";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { customerApi } from "../services/customerApi";
+import { adminAPI } from "@food/api";
+import { normalizeImageUrl } from "@food/utils/imageUtils";
 import { toast } from "sonner";
 import ProductCard from "../components/shared/ProductCard";
 import MainLocationHeader from "../components/shared/MainLocationHeader";
@@ -212,7 +214,7 @@ const ALL_CATEGORY = {
   name: "All",
   icon: HomeIcon,
   theme: DEFAULT_CATEGORY_THEME,
-  headerColor: "#ffdb3a",
+  headerColor: "#800020",
   banner: {
     title: "HOUSEFULL",
     subtitle: "SALE",
@@ -521,6 +523,20 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   const navigate = useNavigate();
   const routePathname = typeof window !== "undefined" ? window.location.pathname : "";
   const quickCatsRef = useRef(null);
+  const [foodCategories, setFoodCategories] = useState([]);
+  
+  useEffect(() => {
+    adminAPI.getPublicCategories().then(res => {
+      const list = res?.data?.data?.categories || res?.data?.categories || [];
+      const transformed = list.map((cat, idx) => ({
+        id: String(cat?.id || cat?._id || cat?.slug || idx),
+        name: cat?.name || "",
+        slug: cat?.slug || String(cat?.name || "").toLowerCase().replace(/\s+/g, "-"),
+        image: cat?.image || cat?.imageUrl || ""
+      }));
+      setFoodCategories(transformed);
+    }).catch(err => console.error(err));
+  }, []);
 
   // --- Core Data Hook (Optimized & Cached) ---
   const {
@@ -710,6 +726,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
           onCategorySelect={setActiveCategory}
           embedded={embedded}
           embeddedHeaderColor={embeddedHeaderColor}
+          forceHeaderColor={activeCategory?.headerColor || "#800020"}
           showTopContent={!embedded}
           showSearchBar={!embedded}
         />
@@ -719,282 +736,90 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
         <QuickHomeLoadingState embedded={embedded} />
       ) : (
         <div className={cn("pt-0", embedded && "pt-0")}>
-          {/* Hero Banners (mobile): admin-configured or static fallback */}
-          <>
-            <div className={cn("block md:hidden", embedded ? "-mt-[1px]" : "mt-0")}>
-              <div>
-                <div
-                  className="relative w-full overflow-hidden"
-                  style={embedded ? { backgroundColor: activeCategory?.headerColor || ALL_CATEGORY.headerColor } : undefined}>
-                  {isBannersLoading ? (
-                    <div className="w-full h-[190px] bg-slate-200/60 dark:bg-slate-800/60 animate-pulse" />
-                  ) : hasHeroBanners ? (
-                    <ExperienceBannerCarousel
-                      section={{ title: "" }}
-                      items={heroConfig.banners.items}
-                      fullWidth
-                      edgeToEdge
-                    />
-                  ) : shouldShowHeroFallback ? (
-                    <div
-                      className={cn(
-                        "flex",
-                        !isInstantBannerJump &&
-                        "transition-transform duration-500 ease-out",
-                      )}
-                      style={{
-                        transform: `translateX(-${mobileBannerIndex * 100}%)`,
-                      }}
-                      onTransitionEnd={handleBannerTransitionEnd}>
-                      <motion.div
-                        onClick={() => navigate(getQuickCategoriesPath())}
-                        whileTap={{ scale: 0.96 }}
-                        className="min-w-full">
-                        <div className="w-full h-[190px] bg-[#E6F5EC] dark:bg-emerald-900/20 p-6 relative overflow-hidden flex items-center border-y border-[#0c831f]/10 dark:border-emerald-500/20 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
-                          <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                            <div className="flex flex-col gap-0.5">
-                              <h4 className="text-2xl font-[1000] text-[#1A1A1A] dark:text-white tracking-tighter leading-none">
-                                Get <span className="text-[#0c831f] dark:text-emerald-400">Products</span>
-                              </h4>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-sm font-black text-gray-700 dark:text-gray-300">
-                                  at
-                                </span>
-                                <div className="bg-[#0c831f] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                                  <VerifiedIcon sx={{ fontSize: 16 }} />
-                                  <span className="text-xl font-[1000]">₹0</span>
-                                </div>
-                                <span className="text-sm font-[1000] text-gray-700 dark:text-gray-300">
-                                  Fee
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 max-w-[150px] leading-tight">
-                              Get groceries delivered in minutes
-                            </p>
-                            <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide shadow-lg shadow-rose-200 dark:shadow-none mt-2">
-                              Order now
-                            </button>
-                          </div>
-                          <div className="absolute right-[-10px] bottom-0 top-0 w-2/5 flex items-center justify-center">
-                            <img
-                              src=""
-                              alt="Promo"
-                              className="w-full h-full object-contain rotate-3 scale-110"
-                            />
-                          </div>
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-[#0c831f]/5 rounded-full blur-2xl -mt-12 -mr-12" />
-                        </div>
-                      </motion.div>
-                      <motion.div
-                        onClick={() => navigate("/categories")}
-                        whileTap={{ scale: 0.96 }}
-                        className="min-w-full">
-                        <div className="w-full h-[190px] bg-white dark:bg-card relative overflow-hidden flex border-y border-gray-100 dark:border-white/5 shadow-[0_4px_15px_rgba(0,0,0,0.05)] group">
-                          <img
-                            src={CardBanner}
-                            alt="Promotion"
-                            className="w-full h-full object-fill"
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/5 to-transparent pointer-events-none" />
-                        </div>
-                      </motion.div>
-                      <motion.div
-                        onClick={() => navigate(getQuickCategoriesPath())}
-                        whileTap={{ scale: 0.96 }}
-                        className="min-w-full">
-                        <div className="w-full h-[190px] bg-[#E6F5EC] dark:bg-emerald-900/20 p-6 relative overflow-hidden flex items-center border-y border-[#0c831f]/10 dark:border-emerald-500/20 shadow-[0_4px_15px_rgba(0,0,0,0.05)]">
-                          <div className="relative z-10 w-3/5 flex flex-col items-start gap-2">
-                            <div className="flex flex-col gap-0.5">
-                              <h4 className="text-2xl font-[1000] text-[#1A1A1A] dark:text-white tracking-tighter leading-none">
-                                Get <span className="text-[#0c831f] dark:text-emerald-400">Products</span>
-                              </h4>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <span className="text-sm font-black text-gray-700 dark:text-gray-300">
-                                  at
-                                </span>
-                                <div className="bg-[#0c831f] text-white px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
-                                  <VerifiedIcon sx={{ fontSize: 16 }} />
-                                  <span className="text-xl font-[1000]">₹0</span>
-                                </div>
-                                <span className="text-sm font-[1000] text-gray-700 dark:text-gray-300">
-                                  Fee
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 max-w-[150px] leading-tight">
-                              Get groceries delivered in minutes
-                            </p>
-                            <button className="bg-[#FF1E56] text-white px-6 py-2.5 rounded-2xl font-black text-xs tracking-wide shadow-lg shadow-rose-200 dark:shadow-none mt-2">
-                              Order now
-                            </button>
-                          </div>
-                          <div className="absolute right-[-10px] bottom-0 top-0 w-2/5 flex items-center justify-center">
-                            <img
-                              src=""
-                              alt="Promo"
-                              className="w-full h-full object-contain rotate-3 scale-110"
-                            />
-                          </div>
-                          <div className="absolute top-0 right-0 w-24 h-24 bg-[#0c831f]/5 rounded-full blur-2xl -mt-12 -mr-12" />
-                        </div>
-                      </motion.div>
+          {/* Custom Screenshot-matching UI */}
+          <div className="w-full bg-white relative">
+                       {/* Extended Dynamic Background for Banner */}
+            <div className="w-full px-4 pb-4 relative pt-4" style={{ backgroundColor: activeCategory?.headerColor || "#800020" }}>
+              {/* Banner Card */}
+              <div className="relative w-full h-[120px] bg-white rounded-[24px] shadow-[0_8px_30px_rgba(0,0,0,0.06)] overflow-hidden flex flex-row border border-white/60">
+                {/* Decorative elements */}
+                <div className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-[120px] h-[120px] opacity-90">
+                  <img src="https://freepngimg.com/thumb/vegetable/24647-6-vegetable-transparent-background.png" alt="veg" className="w-full h-full object-contain -rotate-12 drop-shadow-sm" />
+                </div>
+                <div className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-[120px] h-[120px] opacity-90">
+                  <img src="https://freepngimg.com/thumb/vegetable/24546-3-vegetable-photos.png" alt="veg" className="w-full h-full object-contain rotate-12 drop-shadow-sm" />
+                </div>
+                
+                {/* Banner Content */}
+                <div className="z-10 flex flex-col items-center justify-center w-full text-center mt-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-gray-500">UPTO</span>
+                    <div className="bg-[#FF5722] text-white rounded-full w-[44px] h-[44px] flex flex-col items-center justify-center shadow-md">
+                      <span className="text-[18px] font-black leading-none">50%</span>
                     </div>
-                  ) : null}
+                    <span className="text-[10px] font-bold text-gray-500">OFF</span>
+                  </div>
+                  <h3 className="text-[28px] font-black text-black leading-none tracking-tight font-serif mb-1 mt-1 drop-shadow-sm">Grocery</h3>
+                  <p className="text-[10px] font-bold tracking-tight" style={{ color: activeCategory?.headerColor || "#800020" }}>Order your groceries online and easy</p>
                 </div>
               </div>
             </div>
-          </>
 
-          {/* Promo Marquee Strip */}
-          <div className={cn("w-full md:-mt-[2px] mb-4", embedded ? "-mt-[1px]" : "-mt-[2px]")}>
-            <div
-              className={cn(
-                "relative overflow-hidden",
-                embedded
-                  ? "border-y-0 shadow-none"
-                  : "border-y border-[#e6ddc4] dark:border-[#3a352a] bg-[#f7f0df] dark:bg-[#2a261f] shadow-[0_10px_30px_rgba(15,23,42,0.08)]",
+            {/* Seamless Tabs Row */}
+            <div className="flex w-full h-[40px] relative z-20 mb-0 bg-[#F8F9FA] shadow-[inset_0px_3px_5px_rgba(0,0,0,0.03)] border-b border-gray-200">
+              {/* Left Tab: Superfast Food */}
+              <button 
+                onClick={() => window.location.href = "/food"}
+                className="w-[50%] h-full flex items-center justify-center text-center text-[10px] font-extrabold text-gray-500 uppercase tracking-tight cursor-pointer hover:text-[#800020] active:scale-95 transition-all"
+                style={{ "--hover-color": activeCategory?.headerColor || "#800020" }}
+                onMouseEnter={(e) => e.target.style.color = e.target.style.getPropertyValue('--hover-color')}
+                onMouseLeave={(e) => e.target.style.color = ""}
+              >
+                Aetmad Food
+              </button>
+
+              {/* Right Tab: Superfast Mart (Active Dropdown) */}
+              <div className="absolute top-0 right-0 w-[50%] h-[40px] rounded-bl-[20px] rounded-br-[20px] flex items-center justify-center shadow-[0_6px_12px_rgba(128,0,32,0.25)] border-t-0 border border-black/10" style={{ backgroundColor: activeCategory?.headerColor || "#800020" }}>
+                <span className="text-white text-[10px] font-extrabold uppercase tracking-tight">Aetmad Mart</span>
+              </div>
+            </div>
+
+                        {/* Dynamic Categories Section */}
+            <div className="bg-[#Fcfcf9] rounded-[24px] p-4 mb-5 shadow-[0_2px_15px_rgba(0,0,0,0.03)] border border-[#F0F5EC]">
+              <div className="flex justify-between items-start mb-4 px-1">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-[1000] uppercase tracking-wider" style={{ color: activeCategory?.headerColor || "#800020" }}>EXPLORE</span>
+                  <h4 className="text-[17px] font-[1000] text-slate-900 leading-tight tracking-tight">What's on your mind?</h4>
+                  <p className="text-[9px] text-slate-500 font-bold max-w-[200px] leading-tight">Fresh groceries, snacks, household items and more</p>
+                </div>
+                <ChevronDown className="-rotate-90 opacity-60 w-5 h-5 mt-3" style={{ color: activeCategory?.headerColor || "#800020" }} />
+              </div>
+              
+              {foodCategories?.length > 0 ? (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-0 bg-white rounded-xl overflow-hidden border border-gray-100">
+                  {foodCategories.map((item, idx) => (
+                    <div 
+                      key={item.id || idx} 
+                      onClick={() => { window.location.href = `/food/user/category/${item.slug || item.id}` }}
+                      className="flex flex-col items-center justify-center p-3 border-r border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors group"
+                    >
+                      <img 
+                        src={item.image || "https://cdn-icons-png.flaticon.com/128/6024/6024564.png"} 
+                        alt={item.name} 
+                        className="w-[46px] h-[46px] object-contain mb-2.5 drop-shadow-sm group-hover:scale-110 transition-transform" 
+                      />
+                      <span className="text-[9px] font-bold text-slate-700 text-center leading-tight tracking-tight group-hover:text-black">
+                        {item.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-xs text-gray-500 py-4">No categories found</div>
               )}
-              style={embedded ? { backgroundColor: activeCategory?.headerColor || ALL_CATEGORY.headerColor } : undefined}>
-              <div
-                className={cn(
-                  "absolute inset-y-0 left-0 w-10 pointer-events-none",
-                  embedded ? "bg-none" : "bg-gradient-to-r from-[#f7f0df] dark:from-[#2a261f] via-[#f7f0df]/90 dark:via-[#2a261f]/90 to-transparent",
-                )}
-                style={embedded ? { backgroundImage: `linear-gradient(to right, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}E6, transparent)` } : undefined}
-              />
-              <div
-                className={cn(
-                  "absolute inset-y-0 right-0 w-10 pointer-events-none",
-                  embedded ? "bg-none" : "bg-gradient-to-l from-[#f7f0df] dark:from-[#2a261f] via-[#f7f0df]/90 dark:via-[#2a261f]/90 to-transparent",
-                )}
-                style={embedded ? { backgroundImage: `linear-gradient(to left, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}, ${activeCategory?.headerColor || ALL_CATEGORY.headerColor}E6, transparent)` } : undefined}
-              />
-              <div
-                className={cn(
-                  "classic-marquee-track flex w-max items-center gap-4 px-3 md:px-6 py-4 text-sm md:text-base font-semibold -translate-y-[4px]",
-                  embedded ? "text-white/90" : "text-[#4b463f] dark:text-[#d3ccc2]",
-                )}>
-                {[...MARQUEE_MESSAGES, ...MARQUEE_MESSAGES].map((message, idx) => (
-                  <React.Fragment key={`${message}-${idx}`}>
-                    <span className="whitespace-nowrap">{message}</span>
-                    <span className="text-[#8a7f66] dark:text-[#a3977c]">•</span>
-                  </React.Fragment>
-                ))}
-                <span className="whitespace-nowrap">❤️</span>
-                <span className="whitespace-nowrap">🎁</span>
-              </div>
             </div>
-          </div>
 
-          {/* Quick Navigation Category Slider (admin-configured or global fallback) */}
-          {effectiveQuickCategories.length > 0 && (
-            <div
-              className={cn(
-                "w-full mb-5 overflow-hidden relative group z-20 md:mt-3",
-                embedded ? "mt-2" : "mt-4 md:mt-6",
-              )}>
-              <div
-                className={cn(
-                  "relative overflow-hidden bg-white dark:bg-card",
-                  embedded ? "shadow-none" : "shadow-[0_14px_28px_rgba(15,23,42,0.09)]",
-                )}>
-
-                <div className="relative z-10 px-4 pt-3 pb-1 md:px-8 md:pt-4">
-                  <h2 className="text-center text-[18px] md:text-[20px] font-bold tracking-tight text-[#132018] dark:text-white leading-none">
-                    Quick categories
-                  </h2>
-                </div>
-
-                {/* Left Scroll Button */}
-                <div className="absolute left-4 lg:left-10 top-[58%] -translate-y-1/2 z-20 hidden md:flex">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => scrollQuickCats("left")}
-                    className="h-10 w-10 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md shadow-xl rounded-full flex items-center justify-center border border-gray-100 dark:border-neutral-700 cursor-pointer hover:bg-white dark:hover:bg-neutral-800 text-[#0c831f] dark:text-emerald-400 transition-all">
-                    <ChevronLeft size={22} strokeWidth={3} />
-                  </motion.button>
-                </div>
-
-                <div
-                  ref={quickCatsRef}
-                  className="relative z-10 flex items-start gap-2.5 md:gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-4 pb-3 pt-1 md:px-8 md:pb-4 snap-x scroll-smooth">
-                  {effectiveQuickCategories.map((cat, idx) => {
-                    const palette =
-                      quickCategoryPalettes[idx % quickCategoryPalettes.length];
-                    const categoryImage = getQuickCategoryImage(cat);
-                    return (
-                      <motion.div
-                        key={cat.id}
-                        whileHover={{ y: -4 }}
-                        whileTap={{ scale: 0.96 }}
-                        onClick={() => {
-                          if (typeof window !== "undefined") {
-                            window.sessionStorage.setItem(
-                              QUICK_HEADER_RETURN_STORAGE_KEY,
-                              JSON.stringify({
-                                headerId:
-                                  activeCategory?._id ||
-                                  activeCategory?.id ||
-                                  ALL_CATEGORY._id,
-                                color:
-                                  activeCategory?.headerColor ||
-                                  ALL_CATEGORY.headerColor,
-                                name:
-                                  activeCategory?.name || ALL_CATEGORY.name,
-                              }),
-                            );
-                          }
-                          navigate(getQuickCategoryPath(cat.id));
-                        }}
-                        className="flex flex-col items-center gap-1 min-w-[84px] md:min-w-[112px] lg:min-w-[128px] cursor-pointer group/item snap-start">
-                        <div
-                          className="relative w-[84px] h-[96px] md:w-[112px] md:h-[126px] lg:w-[128px] lg:h-[140px] rounded-t-full rounded-b-[24px] shadow-[0_10px_22px_rgba(15,23,42,0.10)] border flex items-start justify-center p-2 transition-all duration-300 group-hover/item:-translate-y-1 group-hover/item:shadow-[0_16px_30px_rgba(15,23,42,0.14)] overflow-hidden"
-                          style={{
-                            backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.6) 24%, rgba(255,255,255,0.15) 100%), linear-gradient(135deg, ${palette.bgFrom}, ${palette.bgVia}, ${palette.bgTo})`,
-                            borderColor: palette.frameColor,
-                          }}>
-                          <div
-                            className="absolute inset-0 opacity-40 pointer-events-none"
-                            style={{ backgroundColor: palette.glowColor }}
-                          />
-                          {categoryImage ? (
-                            <img
-                              src={categoryImage}
-                              alt={cat.name}
-                              className="absolute left-1/2 top-3 z-10 h-[68px] w-[68px] -translate-x-1/2 object-contain drop-shadow-[0_5px_12px_rgba(0,0,0,0.10)] mix-blend-multiply group-hover/item:scale-110 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="absolute left-1/2 top-3 z-10 flex h-[68px] w-[68px] -translate-x-1/2 items-center justify-center rounded-[20px] bg-white/55 text-2xl font-black uppercase text-slate-400">
-                              {(cat.name || "?").charAt(0)}
-                            </div>
-                          )}
-                          <div className="absolute inset-x-2 bottom-1.5 z-20 text-center">
-                            <span className="block text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[#1f2b20] dark:text-gray-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis drop-shadow-[0_1px_0_rgba(255,255,255,0.65)] group-hover/item:text-[#0c831f] dark:group-hover/item:text-emerald-700 transition-colors">
-                              {cat.name}
-                            </span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-
-                {/* Right Scroll Button */}
-                <div className="absolute right-4 lg:right-10 top-[58%] -translate-y-1/2 z-20 hidden md:flex">
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => scrollQuickCats("right")}
-                    className="h-10 w-10 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md shadow-xl rounded-full flex items-center justify-center border border-gray-100 dark:border-neutral-700 cursor-pointer hover:bg-white dark:hover:bg-neutral-800 text-[#0c831f] dark:text-emerald-400 transition-all">
-                    <ChevronRight size={22} strokeWidth={3} />
-                  </motion.button>
-                </div>
-              </div>
-            </div>
-          )}
-
+                      </div>
           {/* Lowest Price ever Section  (kept as static for now) */}
           <div
             className={cn(

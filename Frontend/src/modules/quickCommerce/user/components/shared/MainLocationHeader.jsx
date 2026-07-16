@@ -20,7 +20,7 @@ import {
   getQuickSearchPath,
   getQuickWishlistPath,
 } from "../../utils/routes";
-import LogoImage from "@/assets/Logo.webp";
+import LogoImage from "@/assets/zozomenLogo.png";
 import shoppingCartAnimation from "@/assets/lottie/shopping-cart.json";
 import { Sparkles } from "lucide-react";
 import { customerApi } from "../../services/customerApi";
@@ -264,6 +264,7 @@ const MainLocationHeader = ({
   onCategorySelect,
   embedded = false,
   embeddedHeaderColor = null,
+  forceHeaderColor = null,
   showTopContent = true,
   showSearchBar = true,
   showCategories = true,
@@ -440,14 +441,14 @@ const MainLocationHeader = ({
   const cartScale = embedded ? 1 : rawCartScale;
   const displayContent = embedded ? "block" : rawDisplayContent;
   const displayNav = embedded ? "flex" : rawDisplayNav;
-  const displayCart = embedded ? "block" : rawDisplayCart;
-
   const baseHeaderColor =
-    (embedded && embeddedHeaderColor) || activeCategory?.headerColor || null;
-  const headerGradient = baseHeaderColor
-    ? embedded
-      ? `linear-gradient(180deg, ${baseHeaderColor} 0%, ${lightenHex(baseHeaderColor, 0.2)} 100%)`
-      : buildHeaderGradient(baseHeaderColor)
+    forceHeaderColor || (embedded && embeddedHeaderColor) || activeCategory?.headerColor || null;
+  const headerGradient = forceHeaderColor
+    ? forceHeaderColor
+    : baseHeaderColor
+      ? embedded
+        ? `linear-gradient(180deg, ${baseHeaderColor} 0%, ${lightenHex(baseHeaderColor, 0.2)} 100%)`
+        : buildHeaderGradient(baseHeaderColor)
     : "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)";
   const searchBarBg = buildSearchBarBackgroundColor(baseHeaderColor || "#1e293b");
   const categoryAccent = "#ffffff";
@@ -468,254 +469,110 @@ const MainLocationHeader = ({
         className={cn(
           embedded
             ? "sticky top-0 z-40"
-            : "fixed top-0 left-0 right-0 z-200",
-          isProductDetailOpen && "hidden md:block",
+            : "fixed top-0 left-0 right-0 z-[200]",
+          isProductDetailOpen && "hidden md:block"
         )}>
-        <motion.div
-          style={{
-            paddingTop: headerTopPadding,
-            paddingBottom: headerBottomPadding,
-            borderBottomLeftRadius: headerRoundness,
-            borderBottomRightRadius: headerRoundness,
-            opacity: bgOpacity,
-            backgroundImage: headerGradient,
-          }}
+        <div
           className={cn(
-            "px-4 transition-all duration-300",
+            "px-4 pt-4 pb-4 transition-all duration-300",
             embedded
-              ? "border-b border-black/5 shadow-[0_10px_24px_rgba(15,23,42,0.10)] backdrop-blur-xl"
-              : "sticky top-0 shadow-[0_4px_20px_rgba(0,0,0,0.15)]",
-          )}>
-          {/* Subtle Glow Overlay */}
-          {embedded ? (
-            <>
-              <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-10">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
-                  <circle cx="10%" cy="10%" r="20" fill="white" />
-                  <circle cx="90%" cy="20%" r="15" fill="white" />
-                  <circle cx="50%" cy="80%" r="25" fill="white" />
-                  <path d="M 0 50 Q 25 30 50 50 T 100 50" stroke="white" strokeWidth="0.5" fill="none" />
-                  <path d="M 0 70 Q 25 50 50 70 T 100 70" stroke="white" strokeWidth="0.5" fill="none" />
-                </svg>
-              </div>
-              <div
-                className="absolute top-0 left-1/4 h-24 w-24 rounded-full blur-[48px] pointer-events-none"
-                style={{ backgroundColor: "rgba(255,255,255,0.22)" }}
-              />
-              <div className="absolute bottom-0 right-1/4 h-28 w-28 rounded-full bg-yellow-400/10 blur-[64px] pointer-events-none" />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-white/8 pointer-events-none" />
+              ? "shadow-none"
+              : "shadow-sm"
           )}
-
-          {/* Desktop/Tablet Header Layout (md and above) */}
-          {!embedded && (showTopContent || showSearchBar) && (
-            <div className="hidden md:flex items-center justify-between relative z-20 px-2 lg:px-6 mb-4 mt-1">
-              {/* Left Section: Logo + Location row */}
-              <div className="flex items-center gap-4 lg:gap-8">
-                <div
-                  onClick={() => navigate(homePath)}
-                  className="flex items-center gap-3 cursor-pointer group shrink-0">
-                  <div className="group-hover:scale-110 transition-all duration-300 drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]">
-                    <img
-                      src={logoUrl}
-                      alt={`${appName} Logo`}
-                      className="h-10 w-auto object-contain"
-                    />
-                  </div>
-                </div>
-
-                {/* Location Block (Desktop inline row) */}
-                {showLocation && (
-                  <button
-                    type="button"
-                    onClick={() => setIsLocationOpen(true)}
-                    className="flex flex-col border-l border-black/10 pl-4 lg:pl-8 h-10 justify-center border-0 bg-transparent p-0 text-left cursor-pointer group active:scale-95 transition-all"
-                  >
-                    <div className="flex items-center gap-[3px]">
-                      <span className="truncate text-[15px] font-black text-slate-900 tracking-tight">
-                        {locationTitle}
-                      </span>
-                      <ChevronDownIcon
-                        sx={{ fontSize: 14, color: "#111827", opacity: 0.7 }}
-                      />
-                    </div>
-                    <span className="max-w-[250px] lg:max-w-[320px] truncate text-[11px] font-medium text-slate-500">
-                      {locationSubtitle}
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* Center Section: Empty (Search moved to categories) */}
-              <div className="flex-1 px-6">
-                <div className="flex items-center justify-end gap-3">
-                  <motion.button
-                    initial={{ opacity: 0, scale: 0.9, y: -8 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-                    style={{
-                      opacity: cartOpacity,
-                      scale: cartScale,
-                      display: displayCart,
-                    }}
-                    type="button"
-                    aria-label="Open cart"
-                    onClick={() => navigate(cartPath)}
-                    className="group relative h-12 w-12 shrink-0 rounded-2xl border border-white/55 bg-white/28 shadow-[0_16px_35px_rgba(15,23,42,0.16)] backdrop-blur-xl transition-all duration-300 hover:bg-white/42 hover:shadow-[0_18px_40px_rgba(15,23,42,0.2)]">
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-black/5 pointer-events-none" />
-                    <div className="absolute inset-x-2 top-1 h-px bg-white/70 pointer-events-none" />
-                    <Lottie
-                      animationData={shoppingCartAnimation}
-                      loop
-                      className="pointer-events-none absolute inset-0 scale-[1.18] drop-shadow-[0_8px_18px_rgba(0,0,0,0.14)] transition-transform duration-300 group-hover:scale-[1.25]"
-                    />
-                  </motion.button>
-                </div>
-              </div>
-
-              {/* Right Section: Action Icons */}
-              <div className="flex items-center gap-5 lg:gap-8 shrink-0">
-                <motion.button
-                  whileHover={{ scale: 1.15, rotate: 5 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => navigate(wishlistPath)}
-                  className="text-slate-900 hover:text-red-500 transition-all">
-                  <FavoriteBorderOutlinedIcon sx={{ fontSize: 24 }} />
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.15, rotate: -5 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => navigate(cartPath)}
-                  className="text-slate-900 hover:text-slate-700 transition-all relative group">
-                  <ShoppingCartOutlinedIcon sx={{ fontSize: 24 }} />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-[var(--primary-theme)] text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-red-800 shadow-sm transition-transform group-hover:-translate-y-0.5">
-                      {cartCount > 99 ? "99+" : cartCount}
-                    </span>
-                  )}
-                </motion.button>
-
-                <div className="flex items-center">
-                  <ThemeToggle />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Collapsible Delivery Info & Location (MOBILE ONLY) */}
-          {!embedded && showTopContent && showLocation && <div className="md:hidden">
-            <motion.div
-              style={{
-                height: contentHeight,
-                opacity: contentOpacity,
-                marginBottom: navMargin,
-                display: displayContent,
-                overflow: "hidden",
-              }}
-              className="relative z-10">
-              <div className="mb-1">
-                <span className="inline-flex items-center rounded-full border border-black/10 bg-white/18 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-900 backdrop-blur-sm">
-                  {appName}
+          style={{ background: headerGradient }}
+        >
+          
+          {/* Header Top Row: Menu + Location + Basket */}
+          <div className="flex items-center justify-between mb-4 mt-1">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {/* Location */}
+              <button
+                type="button"
+                onClick={() => setIsLocationOpen(true)}
+                className="flex flex-col text-left text-white overflow-hidden flex-1 active:scale-95 transition-transform"
+              >
+                <span className="text-[11px] font-medium text-white/90">
+                  Delivery Location
                 </span>
-              </div>
-              <div className="flex justify-between items-start">
-                <div className="flex flex-col">
-                  <button
-                    type="button"
-                    data-lenis-prevent
-                    data-lenis-prevent-touch
-                    onClick={() => {
-                      setIsLocationOpen(true);
-                    }}
-                    className="flex items-start gap-1 cursor-pointer flex-1 min-w-0 bg-transparent border-0 p-0 text-left outline-none"
-                  >
-                    <LocationOnIcon
-                      className="h-[14px] w-[14px] mt-[5px] shrink-0"
-                      sx={{ color: "#111827" }}
-                    />
-                    <div className="flex min-w-0 max-w-[190px] flex-col">
-                      <div className="flex items-center gap-[3px]">
-                        <span className="truncate text-[16px] font-extrabold tracking-[-0.3px] text-slate-900">
-                          {locationTitle}
-                        </span>
-                        <ChevronDownIcon className="h-[14px] w-[14px] shrink-0 opacity-80 text-slate-900" />
-                      </div>
-                      <span className="max-w-[190px] truncate text-[11px] font-medium text-slate-600">
-                        {locationSubtitle}
-                      </span>
-                    </div>
-                  </button>
+                <div className="flex items-center gap-1 w-full mt-0.5">
+                  <span className="text-[14px] font-bold truncate">
+                    {locationTitle}
+                  </span>
+                  <ChevronDownIcon sx={{ fontSize: 16, color: "#ffffff", opacity: 0.9 }} />
                 </div>
-              </div>
-            </motion.div>
-          </div>}
-
-          {/* Top Search removed from here and moved to categories section below */}
-
-          {showCategories && categories.length > 0 && (
-            <div className="relative z-10 space-y-1 pt-0">
-              {/* Compact Search Bar integrated into Categories Section */}
-              <div className="px-4 md:px-0 md:max-w-2xl md:mx-auto py-2">
-                <motion.div
-                  onClick={handleSearchClick}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 rounded-[12px] md:rounded-full px-4 h-[44px] shadow-md flex items-center bg-white border border-gray-100 cursor-pointer">
-                  <SearchIcon sx={{ color: "var(--primary-theme, #cc2532)", fontSize: 22 }} />
-                  <input
-                    type="text"
-                    placeholder={searchPlaceholder || "Search Products..."}
-                    readOnly
-                    className="flex-1 min-w-0 truncate bg-transparent border-none outline-none pl-3 text-slate-800 font-bold placeholder:text-slate-300 text-[15px] cursor-pointer"
-                  />
-                  <div className="shrink-0 flex items-center gap-2 border-l border-red-100 pl-3">
-                    <MicIcon sx={{ color: "var(--primary-theme, #cc2532)", fontSize: 20 }} />
-                  </div>
-                </motion.div>
-              </div>
-
-              <motion.div
-                layout
-                transition={{
-                  layout: {
-                    type: "spring",
-                    stiffness: 420,
-                    damping: 34,
-                    mass: 0.6,
-                  },
-                }}
-                style={{
-                  height: navHeight,
-                  opacity: navOpacity,
-                  marginTop: categorySpacing,
-                  display: displayNav,
-                  overflowY: "hidden",
-                }}
-                className={cn(
-                  "relative flex items-end md:justify-center gap-1 overflow-x-auto no-scrollbar -mx-2 px-2 md:mx-0 md:px-0 z-10 snap-x min-h-[64px] md:min-h-[72px] pb-1",
-                  embedded ? "pt-1" : "pt-2",
-                )}>
-                {categories.slice(0, 10).map((cat) => {
-                  const isActive = activeCategory?.id === cat.id;
-                  return (
-                    <CategoryNavColumn
-                      key={cat.id}
-                      cat={cat}
-                      isActive={isActive}
-                      categoryAccent={categoryAccent}
-                      onCategorySelect={onCategorySelect}
-                    />
-                  );
-                })}
-              </motion.div>
+                {locationSubtitle && locationSubtitle !== "Tap to choose delivery location" && (
+                  <span className="text-[10px] font-medium text-white/80 truncate w-full">
+                    {locationSubtitle}
+                  </span>
+                )}
+              </button>
             </div>
-          )}
 
-          {/* Background Decorative patterns */}
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-[100px] -mr-40 -mt-40 pointer-events-none" />
-        </motion.div>
+            {/* Header Action Icons: Notification, Wallet, Cart */}
+            <div className="flex items-center gap-3 shrink-0 -mt-2">
+              {/* Notification */}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => navigate("/notifications")}
+                className="text-white relative shrink-0"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+              </motion.button>
+              
+              {/* Wallet */}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => navigate("/quick/wallet")}
+                className="text-white relative shrink-0"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
+                  <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
+                  <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path>
+                </svg>
+              </motion.button>
+
+              {/* Shopping Basket */}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => navigate(cartPath)}
+                className="text-white relative shrink-0"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
+                )}
+              </motion.button>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="w-full">
+            <motion.div
+              onClick={handleSearchClick}
+              whileTap={{ scale: 0.98 }}
+              className="w-full rounded-full h-[44px] flex items-center bg-white cursor-pointer px-4 shadow-sm"
+            >
+              <SearchIcon sx={{ color: "#9CA3AF", fontSize: 22 }} />
+              <input
+                type="text"
+                placeholder="Search for Product"
+                readOnly
+                className="flex-1 min-w-0 bg-transparent border-none outline-none pl-2 text-slate-700 font-medium placeholder:text-slate-400 text-[14px] cursor-pointer"
+              />
+            </motion.div>
+          </div>
+
+        </div>
       </div>
 
       <LocationDrawer
