@@ -31,6 +31,7 @@ const SupportTickets = React.lazy(() => import("../pages/SupportTickets"))
 const ReviewModeration = React.lazy(() => import("../pages/ReviewModeration"))
 
 const CouponManagement = React.lazy(() => import("../pages/CouponManagement"))
+const AdsManagement = React.lazy(() => import("../pages/AdsManagement"))
 const ContentManager = React.lazy(() => import("../pages/ContentManager"))
 const HeroCategoriesPerPage = React.lazy(() => import("../pages/HeroCategoriesPerPage"))
 const NotificationComposer = React.lazy(() => import("../pages/NotificationComposer"))
@@ -74,6 +75,7 @@ function QuickCommerceAdminRoutesInner() {
       <Route path="/hero-categories" element={<HeroCategoriesPerPage />} />
       <Route path="/notifications" element={<NotificationComposer />} />
       <Route path="/offer-sections" element={<OfferSectionsManagement />} />
+      <Route path="/ads" element={<AdsManagement />} />
       <Route path="/shop-by-store" element={<ShopByStoreManagement />} />
       <Route path="/coupons" element={<CouponManagement />} />
       <Route path="/sellers/pending" element={<PendingSellers />} />

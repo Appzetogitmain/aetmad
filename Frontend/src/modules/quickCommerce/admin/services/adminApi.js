@@ -217,7 +217,7 @@ export const adminApi = {
     const uploadData = new FormData();
     uploadData.append('file', file);
     uploadData.append('folder', `quick-commerce/settings/${type}`);
-    const response = await axiosInstance.post('/uploads/image', uploadData, {
+    const response = await axiosInstance.post('/uploads/file', uploadData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return {
@@ -439,4 +439,10 @@ export const adminApi = {
     const method = endpoint === "broadcast" ? "post" : "put";
     return axiosInstance[method](`/quick-commerce/admin/returns/${id}/${endpoint}`, payload);
   },
+
+  // Ads Management
+  getAds: () => axiosInstance.get('/quick-commerce/admin/ads'),
+  createAd: (payload) => axiosInstance.post('/quick-commerce/admin/ads', payload),
+  updateAd: (id, payload) => axiosInstance.put(`/quick-commerce/admin/ads/${id}`, payload),
+  deleteAd: (id) => axiosInstance.delete(`/quick-commerce/admin/ads/${id}`),
 };

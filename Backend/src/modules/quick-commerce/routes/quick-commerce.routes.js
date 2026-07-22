@@ -114,6 +114,13 @@ import {
   geocodeAddress,
   reverseGeocode,
 } from "../controllers/location.controller.js";
+import {
+  getActiveAds,
+  getAllAds,
+  createAd,
+  updateAd,
+  deleteAd,
+} from "../controllers/ad.controller.js";
 
 import { authMiddleware } from "../../../core/auth/auth.middleware.js";
 import { requireRoles } from "../../../core/roles/role.middleware.js";
@@ -159,7 +166,14 @@ router.get("/products/:productId", getProductById);
 router.get("/zones/public", listPublicZones);
 router.get("/billing/settings", getPublicBillingSettings);
 
-// Location endpoints
+// Ads Routes
+router.get("/ads", getActiveAds);
+router.get("/admin/ads", adminOnly, getAllAds);
+router.post("/admin/ads", adminOnly, createAd);
+router.put("/admin/ads/:id", adminOnly, updateAd);
+router.delete("/admin/ads/:id", adminOnly, deleteAd);
+
+// --- USER CART ---
 router.get("/location/geocode", geocodeAddress);
 router.get("/location/reverse-geocode", reverseGeocode);
 

@@ -342,11 +342,15 @@ export default function HeroCategoriesPerPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-16 h-16 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
                             {item.imageUrl ? (
-                              <img
-                                src={item.imageUrl}
-                                alt={item.title || `Banner ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
+                              item.imageUrl.toLowerCase().endsWith('.mp4') || item.imageUrl.toLowerCase().endsWith('.webm') ? (
+                                <video src={item.imageUrl} autoPlay loop muted className="w-full h-full object-cover" />
+                              ) : (
+                                <img
+                                  src={item.imageUrl}
+                                  alt={item.title || `Banner ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              )
                             ) : (
                               <HiOutlinePhoto className="h-6 w-6 text-slate-300" />
                             )}
@@ -354,7 +358,7 @@ export default function HeroCategoriesPerPage() {
                           <div className="flex-1 min-w-0 space-y-1">
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="image/*,video/*"
                               className="hidden"
                               id={`hero-banner-file-${idx}`}
                               onChange={(e) => handleBannerFileChange(idx, e.target.files?.[0])}

@@ -59,6 +59,7 @@ import { normalizeImageUrl } from "@food/utils/imageUtils";
 import { toast } from "sonner";
 import ProductCard from "../components/shared/ProductCard";
 import ExploreMoreSection from "@food/components/user/home/ExploreMoreSection";
+import martHeroVideo from "@/assets/i_want_thiscolor_B_B_D_in_bg.mp4";
 import MainLocationHeader from "../components/shared/MainLocationHeader";
 import MiniCart from "../components/shared/MiniCart";
 import ProductDetailSheet from "../components/shared/ProductDetailSheet";
@@ -473,48 +474,56 @@ const getQuickCategoryImage = (category = {}) => {
     "https://cdn-icons-png.flaticon.com/128/2321/2321831.png"
   );
 };
-
 function QuickHomeLoadingState({ embedded }) {
   return (
-    <div className={cn("pb-8", embedded ? "pt-0" : "pt-4 md:pt-6")}>
-      <div className="block md:hidden">
-        <Skeleton className="h-[190px] w-full rounded-none" />
-      </div>
+    <div className={cn("w-full relative min-h-screen", embedded ? "pt-0" : "pt-[176px] md:pt-[210px]")} style={{ backgroundColor: "#B80B3D" }}>
+      {/* Skeleton for Hero Banner */}
+      <section className="px-4 pt-1 pb-4">
+        <div className="w-full flex justify-center mb-4 mt-1">
+          <div className="relative w-[96%] max-w-[440px] rounded-[20px] overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.7)] border border-[#D4AF37]/30">
+            <Skeleton className="w-full h-[150px] sm:h-[200px] object-cover bg-black/20" />
+          </div>
+        </div>
 
-      <div className="px-4 py-4 md:px-8 lg:px-[50px]">
-        <div className="flex gap-3 overflow-hidden">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={index}
-              className="flex min-w-[84px] flex-col items-center gap-2 md:min-w-[112px]">
-              <Skeleton className="h-[96px] w-[84px] rounded-[22px] md:h-[126px] md:w-[112px]" />
-              <Skeleton className="h-3 w-16 rounded-full" />
+        {/* Luxury Decorative Heading Skeleton */}
+        <div className="flex items-center justify-center gap-3 mb-3 mt-1">
+          <div className="flex items-center gap-1.5 opacity-80">
+            <div className="h-[1px] w-8 sm:w-16 bg-gradient-to-r from-transparent to-[#D4AF37]/50"></div>
+            <span className="text-[#D4AF37]/50 text-[10px]">✦</span>
+          </div>
+          <Skeleton className="h-4 w-32 bg-black/20 rounded" />
+          <div className="flex items-center gap-1.5 opacity-80">
+            <span className="text-[#D4AF37]/50 text-[10px]">✦</span>
+            <div className="h-[1px] w-8 sm:w-16 bg-gradient-to-l from-transparent to-[#D4AF37]/50"></div>
+          </div>
+        </div>
+
+        {/* Categories Grid Skeleton */}
+        <div className="grid grid-cols-4 gap-x-2 gap-y-4 px-2 mt-4 relative z-10">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-black/20 p-2 shadow-inner border border-white/5">
+                <Skeleton className="w-full h-full rounded-xl bg-black/10" />
+              </div>
+              <Skeleton className="h-2.5 w-12 bg-black/20 rounded-full" />
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="px-4 pb-4 md:px-8 lg:px-[50px]">
-        <div className="rounded-[28px] border border-[#0c831f]/10 bg-white/80 dark:bg-card/80 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-28 rounded-full" />
-              <Skeleton className="h-8 w-52 rounded-full" />
-            </div>
-            <Skeleton className="h-10 w-24 rounded-full" />
-          </div>
-
-          <div className="flex gap-3 overflow-hidden md:gap-5">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="w-[140px] shrink-0 space-y-3">
-                <Skeleton className="h-[132px] w-full rounded-[20px]" />
-                <Skeleton className="h-3 w-5/6 rounded-full" />
-                <Skeleton className="h-3 w-2/3 rounded-full" />
-                <Skeleton className="h-8 w-full rounded-xl" />
+      </section>
+      
+      {/* Bottom curved background skeleton area */}
+      <div className="relative -mt-4 bg-[#F5F7F8] dark:bg-background rounded-t-[24px] pt-8 px-4 h-full">
+         <div className="space-y-6">
+            <div className="space-y-3">
+              <Skeleton className="h-6 w-48 rounded-md" />
+              <div className="flex gap-4 overflow-hidden">
+                <Skeleton className="h-32 w-28 rounded-xl shrink-0" />
+                <Skeleton className="h-32 w-28 rounded-xl shrink-0" />
+                <Skeleton className="h-32 w-28 rounded-xl shrink-0" />
+                <Skeleton className="h-32 w-28 rounded-xl shrink-0" />
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+         </div>
       </div>
     </div>
   );
@@ -528,9 +537,10 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   const routePathname = typeof window !== "undefined" ? window.location.pathname : "";
   const quickCatsRef = useRef(null);
   const [foodCategories, setFoodCategories] = useState([]);
+  const [secondaryAd, setSecondaryAd] = useState(null);
   
   useEffect(() => {
-    adminAPI.getPublicCategories().then(res => {
+    customerApi.getCategories().then(res => {
       const list = res?.data?.data?.categories || res?.data?.categories || [];
       const transformed = list.map((cat, idx) => ({
         id: String(cat?.id || cat?._id || cat?.slug || idx),
@@ -540,6 +550,15 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
       }));
       setFoodCategories(transformed);
     }).catch(err => console.error(err));
+
+    customerApi.getAds({ position: "home_secondary_banner" }).then(res => {
+      const adsList = res?.data?.data || [];
+      if (adsList.length > 0) {
+        setSecondaryAd(adsList[0]);
+      } else {
+        setSecondaryAd(null);
+      }
+    }).catch(err => console.error("Error fetching ad:", err));
   }, []);
 
   // --- Core Data Hook (Optimized & Cached) ---
@@ -666,7 +685,9 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
     });
   }, [products, categoryProducts, activeCategory, categoryMap]);
 
-  const sectionsForRenderer = (activeCategory && activeCategory._id !== "all") ? headerSections : experienceSections;
+  const sectionsForRenderer = useMemo(() => {
+    return (activeCategory && activeCategory._id !== "all") ? headerSections : experienceSections;
+  }, [activeCategory, headerSections, experienceSections]);
 
   const opacity = useTransform(scrollY, [0, 300], [1, 0.6]);
   const y = useTransform(scrollY, [0, 300], [0, 80]);
@@ -747,12 +768,27 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
             <React.Suspense fallback={null}>
               <ExploreMoreSection
-                exploreMoreHeading="Explore More"
+                exploreMoreHeading="Categories"
                 showExploreSkeleton={false}
-                finalExploreItems={[
-                  { id: '1', label: 'Offers', image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=200&q=80', href: '#' },
-                  { id: '2', label: 'Gourmet', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80', href: '#' },
-                  { id: '3', label: 'Collections', image: 'https://images.unsplash.com/photo-1573246123716-1b5020bc8b35?w=200&q=80', href: '#' }
+                videoSrc={(() => {
+                  const heroBannerUrl = heroConfig?.banners?.items?.[0]?.imageUrl;
+                  return heroBannerUrl || martHeroVideo;
+                })()}
+                badgeText="✨ Essentials"
+                badgeBgClass="bg-gradient-to-r from-[#B80B3D]/95 to-[#8B0028]/95"
+                cardBgClass="bg-gradient-to-b from-[#B80B3D] via-[#8B0028] to-[#3A000E]"
+                finalExploreItems={foodCategories.length > 0 ? foodCategories.map(cat => ({
+                  id: cat.id || cat._id,
+                  label: cat.name,
+                  image: cat.image || "https://cdn-icons-png.flaticon.com/128/6024/6024564.png",
+                  href: `/quick/user/category/${cat.slug || cat.id}`
+                })) : [
+                  { id: '1', label: 'Fruits & Veg', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&q=80', href: `/quick/user/category/fruits` },
+                  { id: '2', label: 'Bakery & Biscuits', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&q=80', href: `/quick/user/category/bakery` },
+                  { id: '3', label: 'Dairy Products', image: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&q=80', href: `/quick/user/category/dairy` },
+                  { id: '4', label: 'Snacks', image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=200&q=80', href: `/quick/user/category/snacks` },
+                  { id: '5', label: 'Instant & Frozen', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=200&q=80', href: `/quick/user/category/frozen` },
+                  { id: '6', label: 'Cold Drinks', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&q=80', href: `/quick/user/category/drinks` }
                 ]}
               />
             </React.Suspense>
@@ -778,33 +814,39 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
           </div>
 
           {/* UPTO 60% OFF Mart Banner (matching the food page static banner layout) */}
-          <div className="px-4 pt-4 pb-1">
-            <div className="relative w-full h-[120px] bg-gradient-to-br from-[#0B3122] via-[#072417] to-black rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-row border border-[#D4AF37]/20">
-              <div className="absolute left-[-10px] top-1/2 -translate-y-1/2 w-[90px] h-[90px] rounded-full border-2 border-[#D4AF37]/40 shadow-[0_8px_20px_rgba(0,0,0,0.4)] overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&q=80" alt="groceries" className="w-full h-full object-cover" />
-              </div>
-              <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 w-[90px] h-[90px] rounded-full border-2 border-[#D4AF37]/40 shadow-[0_8px_20px_rgba(0,0,0,0.4)] overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1573246123716-1b5020bc8b35?w=400&q=80" alt="fresh items" className="w-full h-full object-cover" />
-              </div>
-              
-              <div className="z-10 flex flex-col items-center justify-center w-full text-center mt-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[#D4AF37] font-bold text-[10px] tracking-widest uppercase">UPTO</span>
-                  <div className="w-[42px] h-[42px] rounded-full bg-gradient-to-br from-[#F3E5AB] via-[#D4AF37] to-[#AA7C11] flex flex-col items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.5)] border border-white/20">
-                    <span className="text-[#0B3122] font-black text-[16px] leading-none -mb-0.5">60%</span>
+          {secondaryAd && (
+            <div className="px-4 pt-4 pb-1">
+              <div className="relative w-full h-[120px] bg-gradient-to-br from-[#0B3122] via-[#072417] to-black rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.15)] overflow-hidden flex flex-row border border-[#D4AF37]/20">
+                {secondaryAd.leftImage && (
+                  <div className="absolute left-[-10px] top-1/2 -translate-y-1/2 w-[90px] h-[90px] rounded-full border-2 border-[#D4AF37]/40 shadow-[0_8px_20px_rgba(0,0,0,0.4)] overflow-hidden">
+                    <img src={secondaryAd.leftImage} alt="left ad img" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-[#D4AF37] font-bold text-[10px] tracking-widest uppercase">OFF</span>
-                </div>
+                )}
+                {secondaryAd.rightImage && (
+                  <div className="absolute right-[-10px] top-1/2 -translate-y-1/2 w-[90px] h-[90px] rounded-full border-2 border-[#D4AF37]/40 shadow-[0_8px_20px_rgba(0,0,0,0.4)] overflow-hidden">
+                    <img src={secondaryAd.rightImage} alt="right ad img" className="w-full h-full object-cover" />
+                  </div>
+                )}
                 
-                <h2 className="text-[28px] font-['Playfair_Display',serif] font-black tracking-tight text-white leading-none mb-1 shadow-black drop-shadow-md">
-                  Mart
-                </h2>
-                <p className="text-[10px] text-white/80 font-medium tracking-wide">
-                  Order your favorite items online and easy
-                </p>
+                <div className="z-10 flex flex-col items-center justify-center w-full text-center mt-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[#D4AF37] font-bold text-[10px] tracking-widest uppercase">{secondaryAd.prefixText}</span>
+                    <div className="w-[42px] h-[42px] rounded-full bg-gradient-to-br from-[#F3E5AB] via-[#D4AF37] to-[#AA7C11] flex flex-col items-center justify-center shadow-[0_4px_10px_rgba(0,0,0,0.5)] border border-white/20">
+                      <span className="text-[#0B3122] font-black text-[16px] leading-none -mb-0.5">{secondaryAd.discountValue}</span>
+                    </div>
+                    <span className="text-[#D4AF37] font-bold text-[10px] tracking-widest uppercase">{secondaryAd.suffixText}</span>
+                  </div>
+                  
+                  <h2 className="text-[28px] font-['Playfair_Display',serif] font-black tracking-tight text-white leading-none mb-1 shadow-black drop-shadow-md">
+                    {secondaryAd.title}
+                  </h2>
+                  <p className="text-[10px] text-white/80 font-medium tracking-wide">
+                    {secondaryAd.subtitle}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Ambient luxury background wrapper for the content below banner */}
           <div className="bg-gradient-to-br from-[#faf9f5] via-[#fdfcfb] to-[#f4f2ec] dark:from-[#0a0a0a] dark:to-[#121212] relative overflow-hidden">

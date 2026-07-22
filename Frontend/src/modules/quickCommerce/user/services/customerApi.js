@@ -67,6 +67,7 @@ export const customerApi = {
   createSupportTicket: (data) => axiosInstance.post("/quick-commerce/support/ticket", data, withQuickSession()),
   getSupportTickets: (params = {}) => quickGetWithDedupe("/quick-commerce/support/my-tickets", params),
 
+  getAds: (params) => quickGetWithDedupe("/quick-commerce/ads", params),
   getProducts: (params) => quickGetWithDedupe("/quick-commerce/products", params),
   searchProducts: (params) => quickGetWithDedupe("/quick-commerce/products", params),
   getCategories: (params = {}) => quickGetWithDedupe("/quick-commerce/categories", params),

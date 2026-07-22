@@ -11,7 +11,11 @@ const ExploreMoreSection = memo(({
   exploreMoreHeading,
   showExploreSkeleton,
   finalExploreItems,
-  backendOrigin = ""
+  backendOrigin = "",
+  cardBgClass = "bg-gradient-to-b from-[#113d2d] via-[#082017] to-black",
+  videoSrc,
+  badgeText = "✨ Delicious",
+  badgeBgClass = "bg-gradient-to-r from-[#0B3122]/95 to-[#061911]/95"
 }) => {
   return (
     <section className="px-4 pt-1 pb-4">
@@ -19,18 +23,35 @@ const ExploreMoreSection = memo(({
         {/* User Provided Video Banner */}
         <div className="w-full flex justify-center mb-4 mt-1">
           <div className="relative w-[96%] max-w-[440px] rounded-[20px] overflow-hidden shadow-[0_10px_25px_rgba(0,0,0,0.7)] border border-[#D4AF37]/30">
-            <video 
-              src={multipleFoodCartonVideo} 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
-              className="w-full h-[150px] sm:h-[200px] object-cover"
-            />
+            {(() => {
+              const src = videoSrc || multipleFoodCartonVideo;
+              const isVideo = src.toLowerCase().endsWith('.mp4') || src.toLowerCase().endsWith('.webm');
+              
+              if (isVideo) {
+                return (
+                  <video 
+                    src={src} 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                    className="w-full h-[150px] sm:h-[200px] object-cover"
+                  />
+                );
+              } else {
+                return (
+                  <img
+                    src={src}
+                    alt="Hero Banner"
+                    className="w-full h-[150px] sm:h-[200px] object-cover"
+                  />
+                );
+              }
+            })()}
             {/* Functional Badge overlay tucked into corner to hide watermark without overlapping characters */}
-            <div className="absolute bottom-0 right-0 z-10 flex items-center justify-center bg-gradient-to-r from-[#0B3122]/95 to-[#061911]/95 px-2 py-0.5 rounded-tl-lg rounded-br-[20px] backdrop-blur-md border-t border-l border-[#D4AF37]/40 shadow-md">
+            <div className={`absolute bottom-0 right-0 z-10 flex items-center justify-center ${badgeBgClass} px-2 py-0.5 rounded-tl-lg rounded-br-[20px] backdrop-blur-md border-t border-l border-[#D4AF37]/40 shadow-md`}>
               <span className="text-[#F3E5AB] text-[8px] font-bold tracking-widest uppercase">
-                ✨ Delicious
+                {badgeText}
               </span>
             </div>
           </div>
@@ -68,7 +89,7 @@ const ExploreMoreSection = memo(({
               <Link
                 key={item.id}
                 to={item.href}
-                className="relative flex-shrink-0 w-[100px] h-[135px] sm:w-[120px] sm:h-[155px] group rounded-[20px] p-2 flex flex-col items-center justify-between border-[1.5px] border-[#D4AF37]/40 bg-gradient-to-b from-[#113d2d] via-[#082017] to-black shadow-[inset_0_0_15px_rgba(212,175,55,0.05),0_6px_15px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]/90 hover:shadow-[inset_0_0_20px_rgba(212,175,55,0.15),0_8px_25px_rgba(212,175,55,0.25)] hover:-translate-y-1.5"
+                className={`relative flex-shrink-0 w-[100px] h-[135px] sm:w-[120px] sm:h-[155px] group rounded-[20px] p-2 flex flex-col items-center justify-between border-[1.5px] border-[#D4AF37]/40 ${cardBgClass} shadow-[inset_0_0_15px_rgba(212,175,55,0.05),0_6px_15px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]/90 hover:shadow-[inset_0_0_20px_rgba(212,175,55,0.15),0_8px_25px_rgba(212,175,55,0.25)] hover:-translate-y-1.5`}
               >
                 {/* Text Label */}
                 <span className="text-[11px] sm:text-[13px] font-black text-transparent bg-clip-text bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#AA7C11] leading-snug mt-1.5 z-10 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wide group-hover:from-white group-hover:to-[#F3E5AB] transition-all duration-300">
