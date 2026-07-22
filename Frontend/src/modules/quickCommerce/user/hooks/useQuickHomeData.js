@@ -149,7 +149,7 @@ const ALL_CATEGORY = {
   name: "All",
   icon: HomeIcon,
   theme: DEFAULT_CATEGORY_THEME,
-  headerColor: "#800020",
+  headerColor: "#B80B3D",
   banner: {
     title: "HOUSEFULL",
     subtitle: "SALE",

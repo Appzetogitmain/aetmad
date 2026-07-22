@@ -58,7 +58,7 @@ const BottomNav = () => {
                                         strokeWidth={isActive ? 2.5 : 2}
                                         className={cn(
                                             "transition-colors duration-300",
-                                            isActive ? "text-[#800020]" : "text-gray-400 dark:text-slate-500 group-hover:text-[#800020]"
+                                            isActive ? "text-[#B80B3D]" : "text-gray-400 dark:text-slate-500 group-hover:text-[#B80B3D]"
                                         )}
                                     />
                                 </motion.div>
@@ -69,7 +69,7 @@ const BottomNav = () => {
                                     }}
                                     className={cn(
                                         "text-[10px] font-bold tracking-tight mt-1 transition-colors duration-300",
-                                        isActive ? "text-[#800020]" : "text-gray-400 dark:text-slate-500 group-hover:text-[#800020]"
+                                        isActive ? "text-[#B80B3D]" : "text-gray-400 dark:text-slate-500 group-hover:text-[#B80B3D]"
                                     )}
                                 >
                                     {item.label}
@@ -79,7 +79,7 @@ const BottomNav = () => {
                             {isActive && (
                                 <motion.div
                                     layoutId="topLine"
-                                    className="absolute -top-[1px] w-8 h-[3px] bg-[#800020] rounded-full"
+                                    className="absolute -top-[1px] w-8 h-[3px] bg-[#B80B3D] rounded-full"
                                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                 />
                             )}
