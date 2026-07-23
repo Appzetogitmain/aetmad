@@ -80,179 +80,164 @@ const AdminAuth = () => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#f3f6ff] p-6 font-['Outfit',_sans-serif]">
-            {/* Background Decorations */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] bg-indigo-50 opacity-40 rounded-full blur-[120px]"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-white opacity-60 rounded-full blur-[100px]"></div>
+        <div className="min-h-screen bg-[#FDFDFD] flex font-sans overflow-hidden selection:bg-[#b21c45]/20">
+            {/* Desktop Left: Luxury Graphic */}
+            <div className="hidden lg:flex flex-1 relative bg-gradient-to-br from-[#fff0f3] via-white to-[#fcfcfc] border-r border-[#b21c45]/10 items-center justify-center p-12">
+                <div className="absolute top-0 left-0 w-[60%] h-[60%] bg-gradient-to-br from-[#b21c45]/5 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
+                <div className="absolute bottom-0 right-0 w-[50%] h-[50%] bg-gradient-to-tl from-[#e0b83e]/10 to-transparent rounded-full blur-[60px] pointer-events-none"></div>
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/clean-textile.png')] opacity-[0.3] pointer-events-none mix-blend-multiply"></div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center max-w-lg">
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-[0_15px_50px_rgba(178,28,69,0.15)] overflow-hidden border-[2px] border-[#b21c45]/10 p-1 mb-8"
+                    >
+                        {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                            <ShieldCheck className="w-16 h-16 text-[#b21c45]" />
+                        )}
+                    </motion.div>
+                    <h1 className="text-5xl font-black mb-4 tracking-tight text-[#1A1C23]" style={{ fontFamily: 'serif' }}>
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b21c45] to-[#8a1535]">Admin</span> Portal
+                    </h1>
+                    <p className="text-lg text-gray-500 font-medium">Manage the entire Aetmad ecosystem with unparalleled control and visibility.</p>
+                </div>
             </div>
 
-            <motion.div
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, type: "spring", bounce: 0.3 }}
-                className="relative w-full max-w-[1050px] min-h-[650px] bg-white rounded-[50px] shadow-[0_40px_120px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col md:flex-row border border-white"
-            >
-                {/* Left Side: Form */}
-                <div className="w-full md:w-[45%] p-12 md:p-20 flex flex-col justify-center relative z-10 bg-white">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={isLogin ? 'login' : 'signup'}
-                            initial={{ x: -30, opacity: 0 }}
-                            animate={{ x: 0, opacity: 1 }}
-                            exit={{ x: 30, opacity: 0 }}
-                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                            className="space-y-10"
-                        >
-                            <div className="space-y-3">
-                                <motion.h1
-                                    className="text-5xl font-black text-indigo-900 tracking-tight"
-                                    layoutId="auth-title"
-                                >
-                                    {isLogin ? 'Login' : 'Sign Up'}
-                                </motion.h1>
-                                <p className="text-gray-400 font-medium text-base">
-                                    {isLogin
-                                        ? `Welcome to ${appName} Admin Platform`
-                                        : 'Start managing your platform today'}
-                                </p>
-                            </div>
+            {/* Right/Mobile: Login Form */}
+            <div className="flex-1 flex flex-col justify-center items-center p-6 relative w-full lg:max-w-xl z-20">
+                {/* Mobile-only background blur */}
+                <div className="absolute inset-0 lg:hidden bg-gradient-to-b from-[#fff0f3] to-white opacity-80 pointer-events-none"></div>
+                <div className="absolute -top-[20%] -right-[20%] w-[70%] h-[50%] lg:hidden bg-[#b21c45]/5 rounded-full blur-[60px] pointer-events-none"></div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                <AnimatePresence mode="popLayout">
-                                    {!isLogin && (
-                                        <motion.div
-                                            initial={{ height: 0, opacity: 0, y: -10 }}
-                                            animate={{ height: 'auto', opacity: 1, y: 0 }}
-                                            exit={{ height: 0, opacity: 0, y: -10 }}
-                                            className="group relative"
-                                        >
-                                            <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
-                                                <User size={20} />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                name="name"
-                                                required
-                                                value={formData.name}
-                                                onChange={handleChange}
-                                                placeholder="Full Name"
-                                                className="w-full pl-14 pr-5 py-5 bg-[#f8f9ff] border-2 border-transparent rounded-[24px] text-sm font-bold text-gray-700 outline-none focus:bg-white focus:border-indigo-100 focus:ring-8 focus:ring-indigo-50/50 transition-all placeholder:text-gray-300"
-                                            />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-
-                                <div className="group relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
-                                        <Mail size={20} />
-                                    </div>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        required
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="Username or email"
-                                        className="w-full pl-14 pr-5 py-5 bg-[#f8f9ff] border-2 border-transparent rounded-[24px] text-sm font-bold text-gray-700 outline-none focus:bg-white focus:border-indigo-100 focus:ring-8 focus:ring-indigo-50/50 transition-all placeholder:text-gray-300"
-                                    />
-                                </div>
-
-                                <div className="group relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors">
-                                        <Lock size={20} />
-                                    </div>
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        required
-                                        minLength={6}
-                                        maxLength={6}
-                                        autoComplete="current-password"
-                                        value={formData.password}
-                                        onChange={handleChange}
-                                        placeholder="6 digit / letter PIN"
-                                        className="w-full pl-14 pr-5 py-5 bg-[#f8f9ff] border-2 border-transparent rounded-[24px] text-sm font-bold text-gray-700 outline-none focus:bg-white focus:border-indigo-100 focus:ring-8 focus:ring-indigo-50/50 transition-all placeholder:text-gray-300"
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-full bg-indigo-600 text-white rounded-[24px] py-5 text-base font-black shadow-2xl shadow-indigo-200 hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-                                >
-                                    {isLoading ? (
-                                        <motion.div
-                                            animate={{ rotate: 360 }}
-                                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                                            className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full"
-                                        />
-                                    ) : (
-                                        <>
-                                            <span>{isLogin ? 'Login Now' : 'Create Account'}</span>
-                                            <ArrowRight size={20} />
-                                        </>
-                                    )}
-                                </button>
-                            </form>
-
-                        </motion.div>
-                    </AnimatePresence>
-                </div>
-
-                {/* Right Side: Illustration & Curve */}
-                <div className="hidden md:flex w-[55%] relative bg-[#f8f9ff] overflow-hidden items-center justify-center">
-                    <div className="absolute top-8 right-8 z-30">
-                        <div className="w-20 h-20 rounded-2xl bg-white/85 backdrop-blur-sm border border-indigo-100 shadow-[0_12px_30px_rgba(79,70,229,0.18)] flex items-center justify-center overflow-hidden">
+                <div className="w-full max-w-md relative z-10">
+                    {/* Mobile Logo */}
+                    <div className="flex lg:hidden flex-col items-center mb-8">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(178,28,69,0.1)] overflow-hidden border border-[#b21c45]/10 mb-4">
                             {logoUrl ? (
-                                <img
-                                    src={logoUrl}
-                                    alt={`${appName} logo`}
-                                    className="w-14 h-14 object-contain"
-                                />
+                                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full p-1" />
                             ) : (
-                                <ShieldCheck size={30} className="text-indigo-600" />
+                                <ShieldCheck className="w-10 h-10 text-[#b21c45]" />
                             )}
                         </div>
-                    </div>
-                    {/* The Smooth Curve (SVG) */}
-                    <div className="absolute inset-y-0 -left-1 w-[200px] z-20">
-                        <svg className="h-full w-full fill-white" preserveAspectRatio="none" viewBox="0 0 100 100">
-                            <path d="M 0 0 C 40 0, 100 20, 100 50 C 100 80, 40 100, 0 100 Z"></path>
-                        </svg>
+                        <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'serif' }}>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b21c45] to-[#8a1535]">Admin</span> Portal
+                        </h1>
                     </div>
 
-                    {/* Lottie Animation Scene */}
-                    <div className="relative z-10 w-full h-full flex flex-col items-center justify-center p-20">
-                        {/* Glow Effect Backdrop */}
-                        <div className="absolute w-64 h-64 bg-indigo-400/20 rounded-full blur-[80px]" />
+                    <div className="bg-white rounded-[24px] p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-gray-100 lg:border-transparent lg:shadow-none animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={isLogin ? 'login' : 'signup'}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                            >
+                                <div className="mb-8 text-center">
+                                    <h2 className="text-[26px] font-bold text-[#1A1C23] tracking-tight mb-2" style={{ fontFamily: 'serif' }}>
+                                        {isLogin ? 'Welcome Back' : 'Create Account'}
+                                    </h2>
+                                    <p className="text-sm text-gray-500">Enter your credentials to access the dashboard</p>
+                                </div>
 
-                        <motion.div
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.3, duration: 1, type: "spring" }}
-                            className="w-full max-w-[400px] relative z-10"
-                        >
-                            <Lottie
-                                animationData={backendAnimation}
-                                loop={true}
-                                className="w-full h-auto drop-shadow-[0_20px_40px_rgba(79,70,229,0.15)]"
-                            />
-                        </motion.div>
+                                <form onSubmit={handleSubmit} className="space-y-5">
+                                    <AnimatePresence mode="popLayout">
+                                        {!isLogin && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                            >
+                                                <div className="flex items-center border border-gray-200 rounded-[14px] p-2 bg-[#FAFAFA] focus-within:border-[#b21c45]/50 focus-within:ring-2 focus-within:ring-[#b21c45]/10 transition-all duration-300">
+                                                    <div className="bg-white p-2.5 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-100">
+                                                        <User className="w-4 h-4 text-[#b21c45]" />
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        name="name"
+                                                        required
+                                                        value={formData.name}
+                                                        onChange={handleChange}
+                                                        placeholder="Full Name"
+                                                        className="w-full bg-transparent px-3 py-2 text-[15px] text-gray-900 font-semibold outline-none placeholder:text-gray-400 placeholder:font-normal"
+                                                    />
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
+                                    <div className="flex items-center border border-gray-200 rounded-[14px] p-2 bg-[#FAFAFA] focus-within:border-[#b21c45]/50 focus-within:ring-2 focus-within:ring-[#b21c45]/10 transition-all duration-300">
+                                        <div className="bg-white p-2.5 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-100">
+                                            <Mail className="w-4 h-4 text-[#b21c45]" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            required
+                                            value={formData.email}
+                                            onChange={handleChange}
+                                            placeholder="Username or email"
+                                            className="w-full bg-transparent px-3 py-2 text-[15px] text-gray-900 font-semibold outline-none placeholder:text-gray-400 placeholder:font-normal"
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center border border-gray-200 rounded-[14px] p-2 bg-[#FAFAFA] focus-within:border-[#b21c45]/50 focus-within:ring-2 focus-within:ring-[#b21c45]/10 transition-all duration-300">
+                                        <div className="bg-white p-2.5 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-gray-100">
+                                            <Lock className="w-4 h-4 text-[#b21c45]" />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            required
+                                            minLength={6}
+                                            maxLength={6}
+                                            autoComplete="current-password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="6 digit / letter PIN"
+                                            className="w-full bg-transparent px-3 py-2 text-[15px] text-gray-900 font-semibold outline-none placeholder:text-gray-400 placeholder:font-normal tracking-[0.2em]"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className={`w-full py-4 mt-2 rounded-[14px] font-bold text-base transition-all flex items-center justify-center gap-2 group relative overflow-hidden ${
+                                            !isLoading
+                                            ? "bg-[#b21c45] hover:bg-[#8a1535] text-white shadow-[0_10px_30px_rgba(178,28,69,0.3)] hover:shadow-[0_15px_40px_rgba(178,28,69,0.4)] active:scale-[0.98]"
+                                            : "bg-gray-100 text-gray-400 shadow-none cursor-not-allowed"
+                                        }`}
+                                    >
+                                        {!isLoading && (
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
+                                        )}
+                                        {isLoading ? (
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                                                className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                                            />
+                                        ) : (
+                                            <>
+                                                {isLogin ? 'Login Now' : 'Create Account'}
+                                                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                            </>
+                                        )}
+                                    </button>
+                                </form>
+                            </motion.div>
+                        </AnimatePresence>
                     </div>
-
-                    {/* Subtle Texture */}
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(79,70,229,0.05)_0%,transparent_100%)]"></div>
+                    
+                    <div className="mt-8 text-center">
+                        <p className="text-[10px] font-bold text-gray-400 tracking-[0.2em] uppercase">
+                            &copy; {new Date().getFullYear()} Protected by {appName.toUpperCase()} Security
+                        </p>
+                    </div>
                 </div>
-            </motion.div>
-
-            {/* Verification Label */}
-            <div className="absolute bottom-8 text-gray-400 font-bold text-[10px] tracking-[5px] uppercase flex items-center gap-3">
-                <div className="w-8 h-[1px] bg-gray-200"></div>
-                {`Protected by ${appName} Security`}
-                <div className="w-8 h-[1px] bg-gray-200"></div>
             </div>
         </div>
     );
