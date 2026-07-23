@@ -10,6 +10,7 @@ import { setAuthData } from "@food/utils/auth";
 import { useAuth } from "@core/context/AuthContext";
 import { sellerApi } from "../services/sellerApi";
 import { loadBusinessSettings, getCachedSettings } from "@common/utils/businessSettings";
+import SuperfastLogo from "@/assets/restaurant_logo.webp";
 
 const DEFAULT_COUNTRY_CODE = "+91";
 

@@ -489,12 +489,9 @@ export const submitProductReview = async (req, res) => {
 };
 
 export const getStores = async (req, res) => {
-  setPublicCache(res, 300); // 5 minutes cache
-  
   try {
-    // Find distinct sellers who have products in Quick Commerce
-    const sellerIds = await QuickProduct.distinct('sellerId', publicProductFilter);
-    const stores = await Seller.find({ _id: { $in: sellerIds } }).lean();
+    // Find all approved sellers
+    const stores = await Seller.find({ approvalStatus: 'approved' }).lean();
 
     // Attach sample product images
     const mappedStores = await Promise.all(stores.map(async (store) => {
@@ -503,7 +500,7 @@ export const getStores = async (req, res) => {
           _id: store._id,
           id: store._id,
           name: store.shopName || store.name || 'Store',
-          image: store.logo || sampleProduct?.mainImage || sampleProduct?.image || '',
+          image: store.logo || store.documents?.shopLicenseImage || sampleProduct?.mainImage || sampleProduct?.image || '',
           description: store.description || '',
        };
     }));

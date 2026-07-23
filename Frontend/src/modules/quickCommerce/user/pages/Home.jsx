@@ -538,7 +538,8 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
   const quickCatsRef = useRef(null);
   const [foodCategories, setFoodCategories] = useState([]);
   const [secondaryAd, setSecondaryAd] = useState(null);
-  
+  const [adsList, setAdsList] = useState([]);
+
   useEffect(() => {
     customerApi.getCategories().then(res => {
       const list = res?.data?.data?.categories || res?.data?.categories || [];
@@ -552,13 +553,18 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
     }).catch(err => console.error(err));
 
     customerApi.getAds({ position: "home_secondary_banner" }).then(res => {
-      const adsList = res?.data?.data || [];
-      if (adsList.length > 0) {
-        setSecondaryAd(adsList[0]);
+      const bannerAds = res?.data?.data || [];
+      if (bannerAds.length > 0) {
+        setSecondaryAd(bannerAds[0]);
       } else {
         setSecondaryAd(null);
       }
-    }).catch(err => console.error("Error fetching ad:", err));
+    }).catch(err => console.error("Error fetching secondary ad:", err));
+
+    customerApi.getAds().then(res => {
+      const fetchedAds = res?.data?.results || res?.data?.result || [];
+      setAdsList(Array.isArray(fetchedAds) ? fetchedAds : []);
+    }).catch(err => console.error("Error fetching ads:", err));
   }, []);
 
   // --- Core Data Hook (Optimized & Cached) ---
@@ -749,7 +755,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
         <MainLocationHeader
           categories={categories}
           activeCategory={activeCategory}
-          onCategorySelect={setActiveCategory}
+          onCategorySelect={(cat) => navigate(`/quick/categories/${cat.slug || cat.id || cat._id}`)}
           embedded={embedded}
           embeddedHeaderColor={embeddedHeaderColor}
           forceHeaderColor={activeCategory?.headerColor || "#B80B3D"}
@@ -768,27 +774,27 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
 
             <React.Suspense fallback={null}>
               <ExploreMoreSection
-                exploreMoreHeading="Categories"
+                exploreMoreHeading={heroConfig?.banners?.items?.[0]?.title || "Categories"}
                 showExploreSkeleton={false}
                 videoSrc={(() => {
                   const heroBannerUrl = heroConfig?.banners?.items?.[0]?.imageUrl;
                   return heroBannerUrl || martHeroVideo;
                 })()}
-                badgeText="✨ Essentials"
+                badgeText={heroConfig?.banners?.items?.[0]?.subtitle || "✨ Essentials"}
                 badgeBgClass="bg-gradient-to-r from-[#B80B3D]/95 to-[#8B0028]/95"
                 cardBgClass="bg-gradient-to-b from-[#B80B3D] via-[#8B0028] to-[#3A000E]"
                 finalExploreItems={foodCategories.length > 0 ? foodCategories.map(cat => ({
                   id: cat.id || cat._id,
                   label: cat.name,
                   image: cat.image || "https://cdn-icons-png.flaticon.com/128/6024/6024564.png",
-                  href: `/quick/user/category/${cat.slug || cat.id}`
+                  href: `/quick/categories/${cat.slug || cat.id}`
                 })) : [
-                  { id: '1', label: 'Fruits & Veg', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&q=80', href: `/quick/user/category/fruits` },
-                  { id: '2', label: 'Bakery & Biscuits', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&q=80', href: `/quick/user/category/bakery` },
-                  { id: '3', label: 'Dairy Products', image: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&q=80', href: `/quick/user/category/dairy` },
-                  { id: '4', label: 'Snacks', image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=200&q=80', href: `/quick/user/category/snacks` },
-                  { id: '5', label: 'Instant & Frozen', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=200&q=80', href: `/quick/user/category/frozen` },
-                  { id: '6', label: 'Cold Drinks', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&q=80', href: `/quick/user/category/drinks` }
+                  { id: '1', label: 'Fruits & Veg', image: 'https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=200&q=80', href: `/quick/categories/6a60b43588bfce2455f6dc0e` },
+                  { id: '2', label: 'Bakery & Biscuits', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&q=80', href: `/quick/categories/bakery` },
+                  { id: '3', label: 'Dairy Products', image: 'https://images.unsplash.com/photo-1628088062854-d1870b4553da?w=200&q=80', href: `/quick/categories/dairy` },
+                  { id: '4', label: 'Snacks', image: 'https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=200&q=80', href: `/quick/categories/snacks` },
+                  { id: '5', label: 'Instant & Frozen', image: 'https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9?w=200&q=80', href: `/quick/categories/frozen` },
+                  { id: '6', label: 'Cold Drinks', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=200&q=80', href: `/quick/categories/drinks` }
                 ]}
               />
             </React.Suspense>
@@ -797,7 +803,7 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
             <div className="flex w-full h-[48px] relative z-20 bg-[#F5E6EA] shadow-[inset_0px_3px_5px_rgba(0,0,0,0.03)] border-b border-[#EED8DE]">
               {/* Left Tab: Aetmad Food (Inactive) */}
               <button 
-                onClick={() => window.location.href = "/food"}
+                onClick={() => navigate("/food")}
                 className="w-[50%] h-[48px] flex items-center justify-center bg-transparent text-gray-600 font-bold text-[12px] uppercase tracking-widest transition-all cursor-pointer hover:bg-[#EED8DE] hover:text-gray-800 relative z-0"
               >
                 Aetmad Food
@@ -854,101 +860,102 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
             <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
             <div className="absolute top-40 left-0 w-72 h-72 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
 
-            {/* Dynamic Categories Section */}
-            <div className="relative z-10 px-4 md:px-8 py-6 md:py-8 mb-2">
+            {/* Dynamic Ads Section */}
+            <div className="relative z-10 px-4 md:px-8 pt-6 pb-2 md:pt-8 md:pb-3">
               <div className="flex justify-between items-end mb-6">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[10px] font-[1000] uppercase tracking-[0.2em] text-[#D4AF37] drop-shadow-sm">MORE CATEGORIES</span>
-                  <h4 className="text-[20px] md:text-[24px] font-['Playfair_Display',serif,sans-serif] font-black text-slate-900 dark:text-white leading-tight tracking-tight">What's on your mind?</h4>
-                  <p className="text-[10px] md:text-[11px] text-slate-500 font-medium tracking-wide">Fresh groceries, snacks, household items and more</p>
-                </div>
-                <div className="hidden md:flex gap-2 mb-1">
-                  {/* Optional navigation arrows for desktop */}
-                  <button className="w-8 h-8 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-black hover:shadow-md transition-all">
-                    <ChevronDown className="rotate-90 w-4 h-4" />
-                  </button>
-                  <button className="w-8 h-8 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-black hover:shadow-md transition-all">
-                    <ChevronDown className="-rotate-90 w-4 h-4" />
-                  </button>
+                  <span className="text-[10px] font-[1000] uppercase tracking-[0.2em] text-[#D4AF37] drop-shadow-sm">OFFERS FOR YOU</span>
+                  <h4 className="text-[20px] md:text-[24px] font-['Playfair_Display',serif,sans-serif] font-black text-slate-900 dark:text-white leading-tight tracking-tight">Latest Promotions</h4>
+                  <p className="text-[10px] md:text-[11px] text-slate-500 font-medium tracking-wide">Exciting deals you can't miss</p>
                 </div>
               </div>
               
-              {foodCategories?.length > 0 ? (
+              {adsList?.length > 0 ? (
                 <div className="flex overflow-x-auto gap-4 md:gap-5 pb-6 pt-2 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth">
-                  {foodCategories.map((item, idx) => (
+                  {adsList.map((ad, idx) => (
                     <div 
-                      key={item.id || idx} 
-                      onClick={() => { window.location.href = `/food/user/category/${item.slug || item.id}` }}
-                      className="flex flex-col items-center justify-start shrink-0 snap-start w-[85px] md:w-[100px] cursor-pointer group"
+                      key={ad._id || idx} 
+                      onClick={() => ad.linkUrl ? window.open(ad.linkUrl, '_blank') : null}
+                      className={cn(
+                        "flex flex-col shrink-0 snap-start rounded-[24px] overflow-hidden group shadow-sm border border-slate-100",
+                        ad.linkUrl ? "cursor-pointer" : ""
+                      )}
+                      style={{ width: "300px", height: "160px" }}
                     >
-                      <div className="w-[85px] h-[85px] md:w-[100px] md:h-[100px] rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-md shadow-[0_8px_20px_-8px_rgba(0,0,0,0.08)] border border-white dark:border-slate-700/50 flex items-center justify-center p-3 mb-3 relative overflow-hidden transition-all duration-300 group-hover:shadow-[0_15px_30px_-10px_rgba(0,0,0,0.15)] group-hover:-translate-y-1">
-                        {/* Subtle inner hover glow */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-[#D4AF37]/0 via-[#D4AF37]/0 to-[#D4AF37]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <img 
-                          src={item.image || "https://cdn-icons-png.flaticon.com/128/6024/6024564.png"} 
-                          alt={item.name} 
-                          className="w-[50px] h-[50px] md:w-[60px] md:h-[60px] object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300 relative z-10" 
-                        />
+                      <div className="w-full h-full relative overflow-hidden bg-slate-50">
+                        {ad.imageUrl?.toLowerCase().endsWith('.mp4') || ad.imageUrl?.toLowerCase().endsWith('.webm') ? (
+                          <video src={ad.imageUrl} autoPlay loop muted className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        ) : (
+                          <img 
+                            src={ad.imageUrl} 
+                            alt={ad.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-100"></div>
+                        <div className="absolute bottom-4 left-5 right-5">
+                          <h5 className="text-white font-bold text-sm leading-tight drop-shadow-md">{ad.title}</h5>
+                        </div>
                       </div>
-                      <span className="text-[10px] md:text-[11px] font-bold text-slate-600 dark:text-slate-300 text-center leading-tight tracking-tight group-hover:text-black dark:group-hover:text-white transition-colors">
-                        {item.name}
-                      </span>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center text-xs text-gray-500 py-10">No categories found</div>
-              )}
+              ) : null}
             </div>
           </div>
           {/* Lowest Price ever Section  (kept as static for now) */}
           <div
             className={cn(
-              "mb-4 md:mb-6",
-              embedded ? "mt-4 md:mt-5" : "mt-6 md:mt-10",
+              "mb-4 md:mb-6 relative z-20",
+              embedded ? "-mt-2 md:-mt-4" : "-mt-2 md:-mt-4",
             )}>
-            <div className="relative overflow-hidden bg-gradient-to-r from-[#0B1A24] via-[#10293B] to-[#0B1A24] dark:from-[#050B14] dark:to-[#050B14] pt-8 md:pt-10 pb-0 rounded-none md:rounded-[32px] mx-0 md:mx-8 lg:mx-[50px] shadow-[0_15px_40px_-10px_rgba(0,0,0,0.4)] border border-[#D4AF37]/20">
-              {/* Luxury background glows */}
-              <div className="absolute top-0 right-10 w-[200px] h-[200px] bg-[#D4AF37]/10 rounded-full blur-[80px] pointer-events-none" />
-              <div className="absolute bottom-0 left-10 w-[300px] h-[300px] bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
+            <div className="relative overflow-hidden bg-gradient-to-r from-[#990A33] via-[#D3104C] to-[#B80B3D] dark:from-[#4A0418] dark:to-[#7A0627] pt-8 md:pt-10 pb-0 rounded-[24px] md:rounded-[32px] mx-2 md:mx-8 lg:mx-[50px] shadow-[0_15px_40px_-10px_rgba(184,11,61,0.5)] border border-[#FF4D85]/30">
+              {/* Vibrant background glows */}
+              <div className="absolute top-0 right-10 w-[250px] h-[250px] bg-[#FFD700]/20 rounded-full blur-[80px] pointer-events-none mix-blend-screen" />
+              <div className="absolute bottom-0 left-10 w-[300px] h-[300px] bg-[#FF4D85]/30 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+              
+              {/* Subtle pattern overlay */}
+              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg width=\\'60\\' height=\\'60\\' viewBox=\\'0 0 60 60\\' xmlns=\\'http://www.w3.org/2000/svg\\'%3E%3Cg fill=\\'none\\' fill-rule=\\'evenodd\\'%3E%3Cg fill=\\'%23ffffff\\' fill-opacity=\\'1\\'%3E%3Cpath d=\\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')" }}></div>
 
               <div className="relative z-10 px-4 md:px-8">
                 <div className="flex justify-between items-center mb-5 md:mb-6 px-1">
-                  <div className="flex flex-col">
-                    <h3 className="text-xl md:text-3xl font-['Playfair_Display',serif] font-black tracking-tighter uppercase leading-none text-transparent bg-clip-text bg-gradient-to-r from-[#F3E5AB] via-[#D4AF37] to-[#AA7C11] drop-shadow-md">
-                      Flash <span className="font-sans font-light italic text-[#F3E5AB]">Sale</span>
+                  <div className="flex flex-col group cursor-default">
+                    <h3 className="text-2xl md:text-4xl font-['Playfair_Display',serif] font-black tracking-tighter uppercase leading-none text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-transform duration-500 group-hover:translate-x-1">
+                      Flash <span className="font-sans font-light italic text-[#FFD700]">Sale</span>
                     </h3>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 md:mt-3 bg-black/20 w-fit px-3 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
                       <div className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4AF37] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#F3E5AB] shadow-[0_0_8px_rgba(212,175,55,0.8)]"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFD700] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FFD700] shadow-[0_0_8px_rgba(255,215,0,0.8)]"></span>
                       </div>
-                      <span className="text-[9px] md:text-[10px] font-black text-[#D4AF37] uppercase tracking-[0.2em] opacity-90 drop-shadow-sm">
+                      <span className="text-[9px] md:text-[10px] font-black text-white uppercase tracking-[0.2em] opacity-100 drop-shadow-sm">
                         Unbeatable Savings • Updated hourly
                       </span>
                     </div>
                   </div>
                   <motion.div
-                    onClick={() => navigate(getQuickCategoriesPath())}
-                    whileHover={{ x: 5, scale: 1.05 }}
+                    onClick={() => navigate("/quick/products")}
+                    whileHover={{ scale: 1.05, boxShadow: "0px 10px 25px rgba(255,215,0,0.4)" }}
                     whileTap={{ scale: 0.95 }}
-                    className="flex items-center gap-1 md:gap-1.5 bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[#111] font-bold text-[9px] md:text-xs cursor-pointer shadow-[0_5px_15px_rgba(212,175,55,0.3)] hover:shadow-[0_8px_20px_rgba(212,175,55,0.5)] transition-all shrink-0 whitespace-nowrap">
-                    View all offers
+                    className="flex items-center gap-1.5 md:gap-2 bg-gradient-to-r from-[#FFD700] to-[#F39C12] px-5 py-2.5 md:px-6 md:py-3 rounded-full text-slate-900 font-black text-[10px] md:text-sm cursor-pointer shadow-[0_5px_15px_rgba(0,0,0,0.2)] transition-all shrink-0 whitespace-nowrap overflow-hidden relative border border-white/20">
+                    <span className="relative z-10">View all offers</span>
                     <ArrowRightIcon
-                      sx={{ fontSize: 12, ml: 0.5 }}
+                      sx={{ fontSize: 14, ml: 0.5 }}
+                      className="relative z-10"
                     />
+                    <div className="absolute inset-0 w-full h-full bg-white/30 -translate-x-full hover:animate-[shimmer_1s_infinite]"></div>
                   </motion.div>
                 </div>
 
-                <div className="relative z-10 flex overflow-x-auto gap-3 md:gap-4 pb-5 md:pb-6 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth">
+                <div className="relative z-10 grid grid-cols-3 gap-2 md:gap-4 pb-5 md:pb-6 no-scrollbar">
                   {isProductsLoading ? (
-                    Array(5).fill(0).map((_, i) => (
-                      <div key={i} className="w-[125px] md:w-[155px] lg:w-[175px] h-[220px] shrink-0 bg-white dark:bg-slate-800/60 rounded-[20px] animate-pulse border border-blue-50/50" />
+                    Array(9).fill(0).map((_, i) => (
+                      <div key={i} className="w-full h-[220px] bg-white dark:bg-slate-800/60 rounded-[20px] animate-pulse border border-blue-50/50" />
                     ))
-                  ) : filteredProducts.slice(0, 12).map((product) => (
+                  ) : filteredProducts.slice(0, 9).map((product) => (
                     <div
                       key={product.id || product._id}
-                      className="w-[125px] md:w-[155px] lg:w-[175px] shrink-0 snap-start">
+                      className="w-full">
                       <ProductCard
                         product={product}
                         className="bg-white rounded-[20px] shadow-[0_8px_20px_-8px_rgba(0,0,0,0.1)] border-blue-50/50 transition-all"

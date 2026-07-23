@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { LayoutGrid, Wallet } from 'lucide-react';
+import { LayoutGrid, Wallet, Bell, ShoppingBag } from 'lucide-react';
 import { 
   buildHeaderGradient, 
   buildMiniCartColor, 
@@ -284,24 +284,23 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
             </div>
 
             {/* Location Block (Desktop inline row) */}
-            <div className="flex flex-col border-l border-white/20 pl-4 lg:pl-8 h-10 justify-center">
-              <div className="flex items-center gap-1.5 opacity-70">
-                <AccessTimeIcon sx={{ fontSize: 13, color: "#ffffff" }} />
-                <span className="text-[11px] font-black text-white uppercase tracking-widest leading-none">
-                  Delivery in 10 mins
-                </span>
+            <div className="flex flex-col text-left text-white overflow-hidden flex-1 active:scale-95 transition-transform pl-4 lg:pl-8 border-l border-white/20 justify-center h-10">
+              <span className="text-[11px] font-medium text-white/90 leading-tight">
+                Delivery Location
+              </span>
+              <div className="flex items-center gap-1 w-full mt-[1px]">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-white cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
+                  <span className="text-[15px] lg:text-[17px] font-bold text-white tracking-tight leading-none truncate max-w-[200px] lg:max-w-[250px]">
+                    Indore City, Indore
+                  </span>
+                  <ChevronDownIcon sx={{ fontSize: 16, color: "#ffffff", opacity: 0.9 }} />
+                </button>
               </div>
-              <button
-                type="button"
-                className="flex items-center gap-1 text-white hover:text-white/80 cursor-pointer group active:scale-95 transition-all border-0 bg-transparent p-0 text-left">
-                <LocationOnIcon sx={{ fontSize: 14, color: "inherit" }} />
-                <div className="text-[13px] font-bold leading-tight max-w-[250px] lg:max-w-[320px] truncate">
-                  Home - Gurgaon, Haryana
-                </div>
-                <ChevronDownIcon
-                  sx={{ fontSize: 12, opacity: 0.5, color: "#ffffff" }}
-                />
-              </button>
+              <span className="text-[10px] font-medium text-white/80 truncate w-full mt-[2px] max-w-[280px] lg:max-w-[350px]">
+                Juni Indore Tahsil, Indore, Madhya Pradesh, 452001, India
+              </span>
             </div>
           </div>
 
@@ -333,39 +332,27 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
           </div>
 
           {/* Right Section: Action Icons */}
-          <div className="flex items-center gap-5 lg:gap-8 shrink-0">
+          <div className="flex items-center gap-4 lg:gap-5 shrink-0">
             <motion.button
-              whileHover={{ scale: 1.15, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => navigate(getQuickWishlistPath(pathname))}
-              className="text-white hover:text-white/80 transition-all">
-              <FavoriteBorderOutlinedIcon sx={{ fontSize: 24 }} />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.15, rotate: -5 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => navigate(getQuickCartPath(pathname))}
-              className="flex items-center gap-2 rounded-2xl bg-[#f8cb46] px-4 py-2.5 text-[#111] shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-transform hover:scale-105 active:scale-95"
+              className="text-white relative shrink-0 transition-transform hover:scale-110"
             >
-              <div className="relative">
-                <ShoppingCartOutlinedIcon sx={{ fontSize: 20 }} />
-                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                  {cartCount}
-                </span>
-              </div>
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[10px] font-black uppercase tracking-tight">View Cart</span>
-              </div>
+              <Bell className="h-[22px] w-[22px]" strokeWidth={2.2} />
+              <span className="absolute top-[2px] right-[2px] h-[7px] w-[7px] rounded-full bg-yellow-400 border border-[#b21c45]"></span>
             </motion.button>
-
             <motion.button
-              whileHover={{ scale: 1.15 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate(getQuickWalletPath())}
-              className="text-white lg:bg-white/10 p-1.5 lg:rounded-full hover:bg-white/20 transition-all transform backdrop-blur-sm"
-              aria-label="Open wallet">
-              <Wallet className="h-7 w-7" />
+              className="text-white relative shrink-0 transition-transform hover:scale-110"
+            >
+              <Wallet className="h-[22px] w-[22px]" strokeWidth={2.2} />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate(getQuickCartPath(pathname))}
+              className="text-white relative shrink-0 transition-transform hover:scale-110"
+            >
+              <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={2.2} />
             </motion.button>
           </div>
         </div>
@@ -381,40 +368,49 @@ export default function QuickHeader({ showSearch = true, activeCategory = null, 
               overflow: "hidden",
             }}
             className="relative z-10">
-            <div className="mb-1">
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white backdrop-blur-sm">
-                Blinkit
-              </span>
-            </div>
-            <div className="flex justify-between items-start gap-3">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <AccessTimeIcon sx={{ fontSize: 16, color: "#ffffff" }} />
-                  <span className="text-base font-bold text-white tracking-tight leading-none">
-                    10 mins
-                  </span>
+            <div className="flex justify-between items-center w-full">
+              <div className="flex flex-col text-left text-white overflow-hidden flex-1 active:scale-95 transition-transform">
+                <span className="text-[11px] font-medium text-white/90 leading-tight">
+                  Delivery Location
+                </span>
+                <div className="flex items-center gap-1 w-full mt-[1px]">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-white cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
+                    <span className="text-[15px] font-bold text-white tracking-tight leading-none truncate max-w-[200px]">
+                      Indore City, Indore
+                    </span>
+                    <ChevronDownIcon sx={{ fontSize: 16, color: "#ffffff", opacity: 0.9 }} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-white/90 cursor-pointer group active:scale-95 transition-transform border-0 bg-transparent p-0 text-left">
-                  <LocationOnIcon sx={{ fontSize: 14, color: "#ffffff" }} />
-                  <div className="text-[10px] font-medium leading-tight max-w-[280px] truncate">
-                    Home - Gurgaon, Haryana
-                  </div>
-                  <ChevronDownIcon
-                    sx={{ fontSize: 12, opacity: 0.5, color: "#ffffff" }}
-                  />
-                </button>
+                <span className="text-[10px] font-medium text-white/80 truncate w-full mt-[2px] max-w-[280px]">
+                  Juni Indore Tahsil, Indore, Madhya Pradesh, 452001, India
+                </span>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.92 }}
-                onClick={() => navigate(getQuickWalletPath())}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all"
-                aria-label="Open wallet"
-              >
-                <Wallet className="h-5 w-5" />
-              </motion.button>
+              
+              <div className="flex items-center gap-4 shrink-0 mt-1">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  className="text-white relative shrink-0 transition-transform hover:scale-110"
+                >
+                  <Bell className="h-[22px] w-[22px]" strokeWidth={2.2} />
+                  <span className="absolute top-[2px] right-[2px] h-[7px] w-[7px] rounded-full bg-yellow-400 border border-[#b21c45]"></span>
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate(getQuickWalletPath())}
+                  className="text-white relative shrink-0 transition-transform hover:scale-110"
+                >
+                  <Wallet className="h-[22px] w-[22px]" strokeWidth={2.2} />
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => navigate(getQuickCartPath(pathname))}
+                  className="text-white relative shrink-0 transition-transform hover:scale-110"
+                >
+                  <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={2.2} />
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         </div>
