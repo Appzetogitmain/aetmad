@@ -115,7 +115,6 @@ import RecommendationsSection from "@food/components/user/home/RecommendationsSe
 import RestaurantGrid from "@food/components/user/home/RestaurantGrid";
 import SortFilterSection from "@food/components/user/home/SortFilterSection";
 import ExploreMoreSection from "@food/components/user/home/ExploreMoreSection";
-import SplashLandingPage from "../Home";
 
 import MiniCart from "@food/components/user/MiniCart";
 import OrderTrackingCard from "@food/components/user/OrderTrackingCard";
@@ -144,8 +143,6 @@ const defaultBannersImages = [];
 const defaultBannersData = [];
 
 export default function Home() {
-  const [showSplash, setShowSplash] = useState(true);
-
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
   const navigate = useNavigate();
@@ -285,16 +282,6 @@ export default function Home() {
   const activeBannerImages = useMemo(() => banners?.images || [], [banners?.images]);
 
   const activeBannerData = useMemo(() => banners?.data || [], [banners?.data]);
-
-  if (showSplash) {
-    return (
-      <div className="fixed inset-0 z-[9999] bg-background">
-        <SplashLandingPage 
-          onComplete={() => setShowSplash(false)} 
-        />
-      </div>
-    );
-  }
 
   // Auto-slide banners
   useEffect(() => {
