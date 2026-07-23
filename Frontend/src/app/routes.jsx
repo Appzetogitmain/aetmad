@@ -26,7 +26,7 @@ const SellerSupportPage = lazy(() => import('../modules/seller/pages/Support'))
 
 const FoodUserLayout = lazy(() => import('../modules/Food/components/user/UserLayout'))
 const FoodHomePage = lazy(() => import('../modules/Food/pages/user/Home'))
-const LandingPage = lazy(() => import('../modules/Food/pages/Home'))
+const AetmadSplash = lazy(() => import('../modules/Food/pages/Home'))
 const GlobalCartPage = lazy(() => import('../modules/Food/pages/user/cart/Cart'))
 const GlobalCheckoutPage = lazy(() => import('../modules/Food/pages/user/cart/Checkout'))
 const GlobalSelectAddressPage = lazy(() => import('../modules/Food/pages/user/cart/SelectAddress'))
@@ -150,8 +150,12 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-        {/* Root now lands on the food user page */}
-        <Route path="/" element={<Navigate to={`/food/user${location.search}`} replace />} />
+        {/* Root renders the Aetmad splash, which auto-redirects to /food/user after 3s */}
+        <Route path="/" element={
+          <Suspense fallback={<AppShellSkeleton />}>
+            <AetmadSplash />
+          </Suspense>
+        } />
 
         {/* Auth Module */}
         <Route path="/user/auth/*" element={<AuthApp />} />
@@ -293,7 +297,7 @@ const AppRoutes = () => {
         <Route path="/orders/*" element={<RedirectToFood />} />
 
         {/* Fallback 404 */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/food/user" replace />} />
       </Routes>
   )
 }
