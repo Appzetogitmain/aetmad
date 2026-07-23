@@ -144,12 +144,7 @@ const defaultBannersImages = [];
 const defaultBannersData = [];
 
 export default function Home() {
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !sessionStorage.getItem('splashShown');
-    }
-    return false;
-  });
+  const [showSplash, setShowSplash] = useState(true);
 
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
@@ -290,6 +285,16 @@ export default function Home() {
   const activeBannerImages = useMemo(() => banners?.images || [], [banners?.images]);
 
   const activeBannerData = useMemo(() => banners?.data || [], [banners?.data]);
+
+  if (showSplash) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-background">
+        <SplashLandingPage 
+          onComplete={() => setShowSplash(false)} 
+        />
+      </div>
+    );
+  }
 
   // Auto-slide banners
   useEffect(() => {
