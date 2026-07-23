@@ -1,16 +1,14 @@
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
-import { ArrowRight, Utensils, Truck, Store, Globe, Heart, Shield, Clock } from "lucide-react"
+import { Utensils } from "lucide-react"
 import { motion } from "framer-motion"
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@food/components/ui/card"
-import { Button } from "@food/components/ui/button"
 import { getCachedSettings, loadBusinessSettings } from "@common/utils/businessSettings"
-
 
 export default function Home() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [logoUrl, setLogoUrl] = useState(() => getCachedSettings()?.logo?.url || null)
-  const [companyName, setCompanyName] = useState(() => getCachedSettings()?.companyName || "Superfast Food")
+  const [companyName, setCompanyName] = useState(() => getCachedSettings()?.companyName || "Aetmad")
 
   useEffect(() => {
     const loadLogo = async () => {
@@ -27,78 +25,114 @@ export default function Home() {
       }
     }
     loadLogo()
-
-    const handleSettingsUpdate = () => {
-      const cached = getCachedSettings()
-      if (cached) {
-        if (cached.logo?.url) setLogoUrl(cached.logo.url)
-        if (cached.companyName) setCompanyName(cached.companyName)
-      }
-    }
-    window.addEventListener('businessSettingsUpdated', handleSettingsUpdate)
-    return () => window.removeEventListener('businessSettingsUpdated', handleSettingsUpdate)
   }, [])
+
+  // Splash Screen automatic redirect after 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate(`/food/user${location.search}`, { replace: true })
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [navigate, location.search])
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-2xl shadow-lg">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-6">
+    <div className="h-[100dvh] w-full bg-[#064e3b] relative overflow-hidden flex flex-col items-center justify-center">
+      
+      {/* Cartoon-like Animated Background Elements */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#064e3b] via-[#022c22] to-[#064e3b] opacity-90"></div>
+        
+        {/* Floating Cartoon Bubbles/Shapes */}
+        <motion.div 
+          animate={{ y: [0, -30, 0], x: [0, 20, 0], rotate: [0, 10, -10, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute top-[10%] left-[10%] w-20 h-20 bg-emerald-400/20 rounded-full blur-[8px]"
+        />
+        <motion.div 
+          animate={{ y: [0, 40, 0], x: [0, -20, 0], rotate: [0, -15, 15, 0] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-[20%] right-[15%] w-32 h-32 bg-emerald-300/10 rounded-full blur-[10px]"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], y: [0, -20, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          className="absolute top-[40%] right-[10%] w-16 h-16 bg-emerald-500/20 rounded-[40%] blur-[6px]"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], rotate: [0, 90, 0] }}
+          transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute bottom-[30%] left-[10%] w-24 h-24 bg-white/5 rounded-3xl blur-[12px]"
+        />
+      </div>
+
+      <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-md p-6">
+        
+        {/* Pulsing Center Logo */}
+        <motion.div 
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ 
+            type: "spring",
+            stiffness: 260,
+            damping: 20,
+            duration: 1.5 
+          }}
+          className="flex flex-col items-center"
+        >
+          <motion.div 
+            animate={{ scale: [1, 1.05, 1], boxShadow: ["0px 0px 0px rgba(16,185,129,0)", "0px 0px 50px rgba(16,185,129,0.4)", "0px 0px 0px rgba(16,185,129,0)"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-48 h-48 sm:w-56 sm:h-56 bg-white rounded-full flex items-center justify-center p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-[4px] border-emerald-400/30 overflow-hidden relative"
+          >
+            {/* Shimmer effect across the logo container */}
+            <motion.div 
+              animate={{ x: ["-200%", "200%"] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear", delay: 0.5 }}
+              className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12 z-20"
+            />
+            
             {logoUrl ? (
               <img
                 src={logoUrl}
                 alt={companyName}
-                className="h-16 w-auto object-contain"
-                onError={(e) => {
-                  e.target.style.display = 'none'
-                }}
+                className="w-full h-full object-contain rounded-full relative z-10"
+                onError={(e) => { e.target.style.display = 'none' }}
               />
             ) : (
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center">
-                <Utensils className="w-8 h-8 text-primary" />
-              </div>
+              <Utensils className="w-24 h-24 text-emerald-600 relative z-10" />
             )}
+          </motion.div>
+        </motion.div>
+
+        {/* Loading / Welcome Text */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="mt-12 text-center"
+        >
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-emerald-200 tracking-tight drop-shadow-lg" style={{ fontFamily: 'serif' }}>
+            {companyName || "Aetmad"}
+          </h2>
+          <div className="flex items-center justify-center mt-6 gap-2">
+            <motion.div 
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1, repeat: Infinity, delay: 0 }}
+              className="w-2 h-2 rounded-full bg-emerald-400"
+            />
+            <motion.div 
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1, repeat: Infinity, delay: 0.2 }}
+              className="w-2 h-2 rounded-full bg-emerald-400"
+            />
+            <motion.div 
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1, repeat: Infinity, delay: 0.4 }}
+              className="w-2 h-2 rounded-full bg-emerald-400"
+            />
           </div>
-          <CardTitle className="text-3xl font-bold text-center">{companyName || "Superfast Food"}</CardTitle>
-          <CardDescription className="text-lg">
-            Welcome to the Food Delivery Platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-            <Link to="/user" className="block">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                <span className="text-2xl mb-2">??</span>
-                <span className="font-semibold">User</span>
-              </Button>
-            </Link>
-            <Link to="/restaurant" className="block">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                <span className="text-2xl mb-2">???</span>
-                <span className="font-semibold">Restaurant</span>
-              </Button>
-            </Link>
-            <Link to="/restaurant/auth/sign-in" className="block">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center border-2 border-[#ff8100] hover:bg-[#ff8100]/10">
-                <span className="text-2xl mb-2">??</span>
-                <span className="font-semibold">Restaurant Login</span>
-              </Button>
-            </Link>
-            <Link to="/delivery" className="block">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                <span className="text-2xl mb-2">??</span>
-                <span className="font-semibold">Delivery</span>
-              </Button>
-            </Link>
-            <Link to="/admin/login" className="block">
-              <Button variant="outline" className="w-full h-24 flex flex-col items-center justify-center">
-                <span className="text-2xl mb-2">???</span>
-                <span className="font-semibold">Admin</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+        </motion.div>
+      </div>
     </div>
   )
 }
-

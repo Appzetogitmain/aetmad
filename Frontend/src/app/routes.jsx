@@ -26,6 +26,7 @@ const SellerSupportPage = lazy(() => import('../modules/seller/pages/Support'))
 
 const FoodUserLayout = lazy(() => import('../modules/Food/components/user/UserLayout'))
 const FoodHomePage = lazy(() => import('../modules/Food/pages/user/Home'))
+const LandingPage = lazy(() => import('../modules/Food/pages/Home'))
 const GlobalCartPage = lazy(() => import('../modules/Food/pages/user/cart/Cart'))
 const GlobalCheckoutPage = lazy(() => import('../modules/Food/pages/user/cart/Checkout'))
 const GlobalSelectAddressPage = lazy(() => import('../modules/Food/pages/user/cart/SelectAddress'))
@@ -149,8 +150,12 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-        {/* Root now lands on the food user page */}
-        <Route path="/" element={<Navigate to={`/food/user${location.search}`} replace />} />
+        {/* Root now lands on the new luxury Landing Page */}
+        <Route path="/" element={
+          <Suspense fallback={<PageLoader />}>
+            <LandingPage />
+          </Suspense>
+        } />
 
         {/* Auth Module */}
         <Route path="/user/auth/*" element={<AuthApp />} />

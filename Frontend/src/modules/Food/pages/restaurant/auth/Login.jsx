@@ -6,7 +6,6 @@ import { restaurantAPI } from "@food/api"
 import { useCompanyName } from "@food/hooks/useCompanyName"
 import { toast } from "sonner"
 import { motion } from "framer-motion"
-import SuperfastLogo from "@/assets/zozomenLogo.png"
 import { loadBusinessSettings, getCachedSettings } from "@common/utils/businessSettings"
 
 const DEFAULT_COUNTRY_CODE = "+91"
@@ -156,7 +155,11 @@ export default function RestaurantLogin() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-[0_15px_50px_rgba(178,28,69,0.15)] overflow-hidden border-[2px] border-[#b21c45]/10 p-1 mb-8"
           >
-            <img src={logoUrl || SuperfastLogo} alt="Logo" className="w-full h-full object-cover rounded-full" />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              <Utensils className="w-16 h-16 text-[#b21c45]" />
+            )}
           </motion.div>
           <h1 className="text-5xl font-black mb-4 tracking-tight text-[#1A1C23]" style={{ fontFamily: 'serif' }}>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b21c45] to-[#8a1535]">Restaurant</span> Partner
@@ -175,7 +178,11 @@ export default function RestaurantLogin() {
           {/* Mobile Logo */}
           <div className="flex lg:hidden flex-col items-center mb-8">
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(178,28,69,0.1)] overflow-hidden border border-[#b21c45]/10 mb-4">
-               <img src={logoUrl || SuperfastLogo} alt="Logo" className="w-full h-full object-cover rounded-full p-1" />
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full p-1" />
+              ) : (
+                <Utensils className="w-10 h-10 text-[#b21c45]" />
+              )}
             </div>
             <h1 className="text-3xl font-black tracking-tight" style={{ fontFamily: 'serif' }}>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#b21c45] to-[#8a1535]">Restaurant</span> Partner
