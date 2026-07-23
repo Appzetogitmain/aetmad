@@ -4,7 +4,7 @@ import { Utensils } from "lucide-react"
 import { motion } from "framer-motion"
 import { getCachedSettings, loadBusinessSettings } from "@common/utils/businessSettings"
 
-export default function Home() {
+export default function Home({ onComplete }) {
   const navigate = useNavigate()
   const location = useLocation()
   const [logoUrl, setLogoUrl] = useState(() => getCachedSettings()?.logo?.url || null)
@@ -30,10 +30,14 @@ export default function Home() {
   // Splash Screen automatic redirect after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigate(`/food/user${location.search}`, { replace: true })
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate(`/food/user${location.search}`, { replace: true })
+      }
     }, 3000)
     return () => clearTimeout(timer)
-  }, [navigate, location.search])
+  }, [navigate, location.search, onComplete])
 
   return (
     <div className="h-[100dvh] w-full bg-[#064e3b] relative overflow-hidden flex flex-col items-center justify-center">

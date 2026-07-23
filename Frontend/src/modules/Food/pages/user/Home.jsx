@@ -115,6 +115,7 @@ import RecommendationsSection from "@food/components/user/home/RecommendationsSe
 import RestaurantGrid from "@food/components/user/home/RestaurantGrid";
 import SortFilterSection from "@food/components/user/home/SortFilterSection";
 import ExploreMoreSection from "@food/components/user/home/ExploreMoreSection";
+import SplashLandingPage from "../Home";
 
 import MiniCart from "@food/components/user/MiniCart";
 import OrderTrackingCard from "@food/components/user/OrderTrackingCard";
@@ -143,6 +144,13 @@ const defaultBannersImages = [];
 const defaultBannersData = [];
 
 export default function Home() {
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof window !== "undefined") {
+      return !sessionStorage.getItem('splashShown');
+    }
+    return false;
+  });
+
   const HERO_BANNER_AUTO_SLIDE_MS = 3500;
   const BACKEND_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
   const navigate = useNavigate();

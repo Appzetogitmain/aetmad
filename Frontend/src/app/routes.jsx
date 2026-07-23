@@ -150,19 +150,8 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-        {/* Root now lands on the Splash Landing Page which auto-redirects after 3s */}
-        <Route path="/" element={
-          <Suspense fallback={<PageLoader />}>
-            <LandingPage />
-          </Suspense>
-        } />
-
-        {/* Splash Landing Page Explicit Route */}
-        <Route path="/landingpage" element={
-          <Suspense fallback={<PageLoader />}>
-            <LandingPage />
-          </Suspense>
-        } />
+        {/* Root now lands on the food user page */}
+        <Route path="/" element={<Navigate to={`/food/user${location.search}`} replace />} />
 
         {/* Auth Module */}
         <Route path="/user/auth/*" element={<AuthApp />} />
