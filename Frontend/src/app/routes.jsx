@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import {
   AppShellSkeleton,
   AuthPortalSkeleton,
@@ -75,28 +75,6 @@ const FoodAppWrapper = () => {
 }
 
 const SharedFoodHomeRoute = () => {
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem('hasSeenSplash')
-  })
-
-  useEffect(() => {
-    if (showSplash) {
-      const timer = setTimeout(() => {
-        sessionStorage.setItem('hasSeenSplash', 'true')
-        setShowSplash(false)
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [showSplash])
-
-  if (showSplash) {
-    return (
-      <Suspense fallback={<PageLoader />}>
-        <LandingPage />
-      </Suspense>
-    )
-  }
-
   return (
     <Suspense fallback={<PageLoader />}>
       <FoodUserLayout>
@@ -172,8 +150,15 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-        {/* Root now redirects to food user where the splash screen is shown */}
+        {/* Root now lands on the food user page */}
         <Route path="/" element={<Navigate to={`/food/user${location.search}`} replace />} />
+
+        {/* Splash Landing Page */}
+        <Route path="/landingpage" element={
+          <Suspense fallback={<PageLoader />}>
+            <LandingPage />
+          </Suspense>
+        } />
 
         {/* Auth Module */}
         <Route path="/user/auth/*" element={<AuthApp />} />
