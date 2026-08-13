@@ -14,58 +14,49 @@
  * @param {string} options.crop - Optional crop mode (default: 'fill' if width/height provided).
  * @returns {string} - The optimized URL.
  */
-export const optimizeCloudinaryUrl = (url, options = {}) => {
+export const stripCloudinaryTransformations = (url) => {
   if (!url || typeof url !== "string") return url || "";
-
-  // Only process Cloudinary URLs
   if (!/res\.cloudinary\.com/i.test(url) || !/\/image\/upload\//i.test(url)) {
     return url;
   }
-
-  const {
-    format = "auto",
-    quality = "auto:good",
-    width,
-    height,
-    crop = width || height ? "limit" : null,
-    dpr = "auto",
-  } = options;
 
   try {
     const parts = url.split("/upload/");
     if (parts.length !== 2) return url;
 
     const [prefix, suffix] = parts;
-    const slashIndex = suffix.indexOf("/");
-    const firstSegment = slashIndex === -1 ? suffix : suffix.slice(0, slashIndex);
-    const rest = slashIndex === -1 ? "" : suffix.slice(slashIndex + 1);
-    const hasNamedTransformations =
-      firstSegment.includes("_") && !/^v\d+$/.test(firstSegment);
+    const segments = suffix.split("/");
+    
+    // Filter out transformation segments (segments containing commas or transformation flags like f_, q_, w_, h_, c_, dpr_)
+    const cleanSegments = segments.filter((seg) => {
+      if (/^v\d+$/i.test(seg)) return true;
+      if (
+        seg.includes(",") ||
+        seg.includes("f_") ||
+        seg.includes("q_") ||
+        seg.includes("w_") ||
+        seg.includes("h_") ||
+        seg.includes("c_") ||
+        seg.includes("dpr_")
+      ) {
+        return false;
+      }
+      return true;
+    });
 
-    if (hasNamedTransformations) {
-      const transforms = firstSegment
-        .split(",")
-        .filter(Boolean)
-        .filter((part) => !part.startsWith("f_") && !part.startsWith("q_") && !part.startsWith("c_"));
-
-      if (crop) transforms.unshift(`c_${crop}`);
-      transforms.unshift(`q_${quality}`);
-      transforms.unshift(`f_${format}`);
-
-      const normalized = transforms.join(",");
-      return `${prefix}/upload/${normalized}/${rest}`;
-    }
-
-    let transformStr = `f_${format},q_${quality},dpr_${dpr}`;
-    if (width) transformStr += `,w_${width}`;
-    if (height) transformStr += `,h_${height}`;
-    if (crop) transformStr += `,c_${crop}`;
-
-    return `${prefix}/upload/${transformStr}/${suffix}`;
+    return `${prefix}/upload/${cleanSegments.join("/")}`;
   } catch (err) {
-    console.error("Error optimizing Cloudinary URL:", err);
     return url;
   }
+};
+
+/**
+ * Optimizes a Cloudinary URL by cleaning transformation flags.
+ * Strips transformations to avoid 401 Unauthorized errors.
+ */
+export const optimizeCloudinaryUrl = (url, options = {}) => {
+  if (!url || typeof url !== "string") return url || "";
+  return stripCloudinaryTransformations(url);
 };
 
 /**

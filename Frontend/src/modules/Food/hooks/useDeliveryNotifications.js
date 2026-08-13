@@ -54,6 +54,39 @@ const safeReadJson = (key) => {
   }
 };
 
+const sanitizeTokenStr = (raw) => {
+  if (!raw) return null;
+  let clean = String(raw).trim();
+  if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if (clean.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(clean);
+      clean = parsed.token || parsed.accessToken || parsed.jwt || clean;
+    } catch (e) {}
+  }
+  if (typeof clean === 'string' && /^Bearer\s+/i.test(clean)) {
+    clean = clean.replace(/^Bearer\s+/i, '').trim();
+  }
+  if (typeof clean === 'string' && ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'")))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+  return clean;
+};
+
+const getCleanDeliveryToken = () => {
+  const keys = ['auth_delivery', 'delivery_accessToken', 'accessToken', 'token'];
+  for (const key of keys) {
+    const raw = localStorage.getItem(key);
+    const clean = sanitizeTokenStr(raw);
+    if (clean) return clean;
+  }
+  return null;
+};
+
 const decodeJwtPayload = (token) => {
   try {
     const parts = String(token || '').split('.');
@@ -91,9 +124,7 @@ const resolveDeliveryPartnerIdFromClient = () => {
 
     if (nestedCandidate) return String(nestedCandidate);
 
-    const token =
-      localStorage.getItem('delivery_accessToken') ||
-      localStorage.getItem('accessToken');
+    const token = getCleanDeliveryToken();
     const payload = decodeJwtPayload(token);
     const tokenCandidate =
       payload?.userId ||
@@ -536,9 +567,7 @@ export const useDeliveryNotifications = () => {
           isConnected,
           socketId: socketRef.current?.id || null,
           socketConnected: Boolean(socketRef.current?.connected),
-          socketAuthTokenPresent: Boolean(
-            localStorage.getItem('delivery_accessToken') || localStorage.getItem('accessToken')
-          ),
+          socketAuthTokenPresent: Boolean(getCleanDeliveryToken()),
         };
       },
     };
@@ -799,7 +828,7 @@ export const useDeliveryNotifications = () => {
       return; // Don't try to connect with invalid URL
     }
 
-    const token = localStorage.getItem('delivery_accessToken') || localStorage.getItem('accessToken');
+    const token = getCleanDeliveryToken();
     const tokenPreview = token ? `${String(token).slice(0, 12)}...` : null;
     debugLog('Preparing socket auth payload', {
       tokenPresent: Boolean(token),
@@ -1129,9 +1158,9 @@ export const useDeliveryNotifications = () => {
 
     // Auth change/refresh listeners
     const handleAuthChange = () => {
-      const newToken = localStorage.getItem('delivery_accessToken') || localStorage.getItem('accessToken');
+      const newToken = getCleanDeliveryToken();
       if (socketRef.current && newToken) {
-        debugLog('?? Auth changed, updating socket token');
+        debugLog('Auth changed, updating socket token');
         socketRef.current.auth.token = newToken;
         // Only reconnect if not already connecting/connected or if token changed significantly
         if (!socketRef.current.connected) {
@@ -1141,9 +1170,10 @@ export const useDeliveryNotifications = () => {
     };
 
     const handleAuthRefreshed = (e) => {
-      if (e.detail?.module === 'delivery' && socketRef.current && e.detail.token) {
-        debugLog('?? Auth refreshed for delivery, updating socket token');
-        socketRef.current.auth.token = e.detail.token;
+      const refreshed = sanitizeTokenStr(e.detail?.token) || getCleanDeliveryToken();
+      if (e.detail?.module === 'delivery' && socketRef.current && refreshed) {
+        debugLog('Auth refreshed for delivery, updating socket token');
+        socketRef.current.auth.token = refreshed;
         if (!socketRef.current.connected) {
           socketRef.current.connect();
         }

@@ -60,41 +60,38 @@ const OptimizedImage = React.memo(({
     return backendOrigin ? `${backendOrigin.replace(/\/$/, "")}${url.startsWith("/") ? url : `/${url}`}` : url
   }
 
-  const resolvedSrc = useMemo(() => resolveUrl(src), [src, backendOrigin])
+  const resolvedSrc = useMemo(() => {
+    const resolved = resolveUrl(src);
+    // If it's a Cloudinary URL, run it through our utility which now actively strips 
+    // existing transformations that Cloudinary's strict mode blocks with 401.
+    if (/res\.cloudinary\.com/i.test(resolved)) {
+      return optimizeCloudinaryUrl(resolved, { format: 'auto' });
+    }
+    return resolved;
+  }, [src, backendOrigin])
 
   // Generate responsive srcset
   const srcSet = useMemo(() => {
-    if (!supportsOptimization(resolvedSrc)) return undefined
-    const sizesArr = [300, 600, 900, 1200]
-    
-    // Check if it's Cloudinary
-    if (/res\.cloudinary\.com/i.test(resolvedSrc)) {
-      return sizesArr
-        .map(size => `${optimizeCloudinaryUrl(resolvedSrc, { width: size, quality: 'auto:good', format: 'auto' })} ${size}w`)
-        .join(', ')
-    }
+    if (hasError || !supportsOptimization(resolvedSrc)) return undefined
+    // For Cloudinary URLs, avoid generating transformed srcSet to prevent 401 Unauthorized on strict accounts
+    if (/res\.cloudinary\.com/i.test(resolvedSrc)) return undefined
 
+    const sizesArr = [300, 600, 900, 1200]
     return sizesArr
       .map(size => `${appendImageParams(resolvedSrc, { w: size, q: 80 })} ${size}w`)
       .join(', ')
-  }, [resolvedSrc])
+  }, [resolvedSrc, hasError])
 
   // Generate WebP srcset
   const webPSrcSet = useMemo(() => {
-    if (!supportsOptimization(resolvedSrc)) return undefined
+    if (hasError || !supportsOptimization(resolvedSrc)) return undefined
+    if (/res\.cloudinary\.com/i.test(resolvedSrc)) return undefined
+
     const sizesArr = [300, 600, 900, 1200]
-
-    // Check if it's Cloudinary
-    if (/res\.cloudinary\.com/i.test(resolvedSrc)) {
-      return sizesArr
-        .map(size => `${optimizeCloudinaryUrl(resolvedSrc, { width: size, quality: 'auto:good', format: 'webp' })} ${size}w`)
-        .join(', ')
-    }
-
     return sizesArr
       .map(size => `${appendImageParams(resolvedSrc, { w: size, q: 80, format: 'webp' })} ${size}w`)
       .join(', ')
-  }, [resolvedSrc])
+  }, [resolvedSrc, hasError])
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -157,7 +154,7 @@ const OptimizedImage = React.memo(({
   return (
     <div className={`relative overflow-hidden ${className}`} ref={imgRef}>
       {/* Blur Placeholder */}
-      {placeholder === 'blur' && !isLoaded && (
+      {placeholder === 'blur' && !isLoaded && !hasError && (
         <motion.div
           className="absolute inset-0"
           initial={{ opacity: 1 }}
@@ -182,7 +179,7 @@ const OptimizedImage = React.memo(({
       {isInView && (
         <picture className="absolute inset-0 w-full h-full">
           {/* WebP source for modern browsers */}
-          {webPSrcSet && (
+          {!hasError && webPSrcSet && (
             <source
               srcSet={webPSrcSet}
               sizes={sizes}
@@ -193,10 +190,10 @@ const OptimizedImage = React.memo(({
           {/* Fallback to original format */}
           <motion.img
             src={imageSrc}
-            srcSet={srcSet}
-            sizes={supportsOptimization(imageSrc) ? sizes : undefined}
+            srcSet={hasError ? undefined : srcSet}
+            sizes={!hasError && supportsOptimization(imageSrc) ? sizes : undefined}
             alt={alt}
-            className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${priority || isLoaded ? 'opacity-100' : 'opacity-0'} ${!priority && 'transition-opacity duration-300'}`}
+            className={`w-full h-full ${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${priority || isLoaded || hasError ? 'opacity-100' : 'opacity-0'} ${!priority && 'transition-opacity duration-300'}`}
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={priority ? 'high' : 'auto'}

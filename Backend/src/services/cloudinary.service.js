@@ -7,16 +7,27 @@ cloudinary.config({
     api_secret: config.cloudinaryApiSecret
 });
 
-export const getOptimizedCloudinaryImageUrl = (url, { format = 'webp', quality = 'auto' } = {}) => {
+export const getOptimizedCloudinaryImageUrl = (url) => {
     if (!url || typeof url !== 'string' || !url.includes('/image/upload/')) {
         return url;
     }
 
-    if (url.includes(`/upload/f_${format},q_${quality}/`)) {
+    try {
+        const parts = url.split('/upload/');
+        if (parts.length !== 2) return url;
+        const [prefix, suffix] = parts;
+        const segments = suffix.split('/');
+        const cleanSegments = segments.filter((seg) => {
+            if (/^v\d+$/i.test(seg)) return true;
+            if (seg.includes(',') || seg.includes('f_') || seg.includes('q_') || seg.includes('w_') || seg.includes('h_') || seg.includes('c_')) {
+                return false;
+            }
+            return true;
+        });
+        return `${prefix}/upload/${cleanSegments.join('/')}`;
+    } catch {
         return url;
     }
-
-    return url.replace('/upload/', `/upload/f_${format},q_${quality}/`);
 };
 
 const getImageUploadOptions = (folder) => ({

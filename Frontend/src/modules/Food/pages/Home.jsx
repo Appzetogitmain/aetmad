@@ -37,7 +37,7 @@ export default function Home({ onComplete }) {
       }
     }, 3000)
     return () => clearTimeout(timer)
-  }, [navigate, location.search, onComplete])
+  }, [navigate, location.search]) // Removed onComplete from dependencies to prevent infinite loop
 
   return (
     <div className="h-[100dvh] w-full bg-[#064e3b] relative overflow-hidden flex flex-col items-center justify-center">

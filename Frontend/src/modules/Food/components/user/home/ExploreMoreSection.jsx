@@ -87,7 +87,7 @@ const ExploreMoreSection = memo(({
             `}} />
             {finalExploreItems.map((item, index) => (
               <Link
-                key={item.id}
+                key={item.id || item._id || `explore-item-${index}`}
                 to={item.href}
                 className={`relative flex-shrink-0 w-[100px] h-[135px] sm:w-[120px] sm:h-[155px] group rounded-[20px] p-2 flex flex-col items-center justify-between border-[1.5px] border-[#D4AF37]/40 ${cardBgClass} shadow-[inset_0_0_15px_rgba(212,175,55,0.05),0_6px_15px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-300 hover:border-[#D4AF37]/90 hover:shadow-[inset_0_0_20px_rgba(212,175,55,0.15),0_8px_25px_rgba(212,175,55,0.25)] hover:-translate-y-1.5`}
               >

@@ -60,7 +60,33 @@ export const useUserNotifications = () => {
     const socketUrl = `${backendUrl}`;
     
     // Auth token
-    const token = localStorage.getItem('user_accessToken') || localStorage.getItem('accessToken');
+    const getCleanUserToken = () => {
+      const keys = ['auth_customer', 'user_accessToken', 'accessToken', 'token'];
+      for (const key of keys) {
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        let clean = String(raw).trim();
+        if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') continue;
+        if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+          clean = clean.slice(1, -1).trim();
+        }
+        if (clean.startsWith('{')) {
+          try {
+            const parsed = JSON.parse(clean);
+            clean = parsed.token || parsed.accessToken || parsed.jwt || clean;
+          } catch (e) {}
+        }
+        if (typeof clean === 'string' && /^Bearer\s+/i.test(clean)) {
+          clean = clean.replace(/^Bearer\s+/i, '').trim();
+        }
+        if (clean && clean !== 'undefined' && clean !== 'null' && clean !== 'false') {
+          return clean;
+        }
+      }
+      return null;
+    };
+
+    const token = getCleanUserToken();
     if (!token) return;
 
     debugLog('🔌 Connecting to User Socket.IO:', socketUrl);

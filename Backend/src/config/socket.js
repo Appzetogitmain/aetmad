@@ -12,13 +12,46 @@ function logDeliverySocket(message, extra = {}) {
     logger.info(`[DeliverySocket] ${message}${suffix}`);
 }
 
+function sanitizeSocketToken(token) {
+    if (!token || typeof token !== 'string') return null;
+    let clean = token.trim();
+    if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+
+    if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+        clean = clean.slice(1, -1).trim();
+    }
+    if (clean.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(clean);
+            clean = parsed.token || parsed.accessToken || parsed.jwt || clean;
+        } catch (e) {}
+    }
+    if (typeof clean === 'string' && /^Bearer\s+/i.test(clean)) {
+        clean = clean.replace(/^Bearer\s+/i, '').trim();
+    }
+    if (typeof clean === 'string' && ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'")))) {
+        clean = clean.slice(1, -1).trim();
+    }
+    if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+    return clean;
+}
+
 function getTokenFromHandshake(socket) {
     const authToken = socket?.handshake?.auth?.token;
-    if (typeof authToken === 'string' && authToken.trim()) return authToken.trim();
+    if (authToken) {
+        const clean = sanitizeSocketToken(String(authToken));
+        if (clean) return clean;
+    }
     const header = socket?.handshake?.headers?.authorization || socket?.handshake?.headers?.Authorization;
-    if (typeof header === 'string' && header.startsWith('Bearer ')) return header.substring(7).trim();
+    if (header) {
+        const clean = sanitizeSocketToken(String(header));
+        if (clean) return clean;
+    }
     const queryToken = socket?.handshake?.query?.token;
-    if (typeof queryToken === 'string' && queryToken.trim()) return queryToken.trim();
+    if (queryToken) {
+        const clean = sanitizeSocketToken(String(queryToken));
+        if (clean) return clean;
+    }
     return null;
 }
 

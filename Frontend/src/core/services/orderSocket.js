@@ -12,11 +12,35 @@ function socketBaseUrl() {
   return api.replace(/\/api(?:\/v\d+)?\/?$/, "");
 }
 
+function sanitizeToken(raw) {
+  if (!raw) return null;
+  let clean = String(raw).trim();
+  if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+  if ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'"))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if (clean.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(clean);
+      clean = parsed.token || parsed.accessToken || parsed.jwt || clean;
+    } catch (e) {}
+  }
+  if (typeof clean === 'string' && /^Bearer\s+/i.test(clean)) {
+    clean = clean.replace(/^Bearer\s+/i, '').trim();
+  }
+  if (typeof clean === 'string' && ((clean.startsWith('"') && clean.endsWith('"')) || (clean.startsWith("'") && clean.endsWith("'")))) {
+    clean = clean.slice(1, -1).trim();
+  }
+  if (!clean || clean === 'undefined' || clean === 'null' || clean === 'false') return null;
+  return clean;
+}
+
 /**
  * Singleton Socket.IO client with JWT auth.
  */
 export function getOrderSocket(getToken) {
-  const token = typeof getToken === "function" ? getToken() : getToken;
+  const rawToken = typeof getToken === "function" ? getToken() : getToken;
+  const token = sanitizeToken(rawToken);
   if (!token) {
     console.warn('[orderSocket] No token available, cannot connect');
     return null;

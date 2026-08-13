@@ -286,16 +286,6 @@ export default function Home() {
 
   const activeBannerData = useMemo(() => banners?.data || [], [banners?.data]);
 
-  if (showSplash) {
-    return (
-      <div className="fixed inset-0 z-[9999] bg-background">
-        <SplashLandingPage 
-          onComplete={() => setShowSplash(false)} 
-        />
-      </div>
-    );
-  }
-
   // Auto-slide banners
   useEffect(() => {
     if (!activeBannerImages.length) return;
@@ -349,6 +339,16 @@ export default function Home() {
     if (activeTab === "quick") navigate("/quick/search");
     else navigate("/food/user/search");
   }, [activeTab, navigate]);
+
+  if (showSplash) {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-background">
+        <SplashLandingPage 
+          onComplete={() => setShowSplash(false)} 
+        />
+      </div>
+    );
+  }
 
   // --- Render ---
   return (
