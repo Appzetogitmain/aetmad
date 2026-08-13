@@ -337,15 +337,6 @@ export default function Home() {
     else navigate("/food/user/search");
   }, [activeTab, navigate]);
 
-  if (showSplash) {
-    return (
-      <div className="fixed inset-0 z-[9999] bg-background">
-        <SplashLandingPage 
-          onComplete={() => setShowSplash(false)} 
-        />
-      </div>
-    );
-  }
 
   // --- Render ---
   return (
