@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 
-import { CheckCircle, MapPin, CreditCard, ArrowLeft } from "lucide-react"
+import { CheckCircle, MapPin, CreditCard, ArrowLeft, FileText } from "lucide-react"
 import { Link } from "react-router-dom"
 import AnimatedPage from "@food/components/user/AnimatedPage"
 import ScrollReveal from "@food/components/user/ScrollReveal"
@@ -23,6 +23,7 @@ export default function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState(getAddressId(getDefaultAddress()))
   const [selectedPayment, setSelectedPayment] = useState(getDefaultPaymentMethod()?.id || "")
   const [isPlacingOrder, setIsPlacingOrder] = useState(false)
+  const [note, setNote] = useState("")
 
   const selectedAddress = addresses.find(addr => getAddressId(addr) === selectedAddressId) || getDefaultAddress()
   const defaultPayment = paymentMethods.find(pm => pm.id === selectedPayment) || getDefaultPaymentMethod()
@@ -66,6 +67,7 @@ export default function Checkout() {
         })),
         address: selectedAddress,
         paymentMethod: defaultPayment,
+        note: note || "",
         subtotal,
         deliveryFee,
         tax,
@@ -243,6 +245,31 @@ export default function Checkout() {
                       </Link>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </ScrollReveal>
+
+            {/* Note for Restaurant / Cooking Instructions */}
+            <ScrollReveal delay={0.25}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-[var(--primary-theme)]" />
+                    Note for Restaurant / Cooking Instructions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Eg. Make it extra spicy, Less oil, Don't add onions, Leave at gate"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-sm md:text-base resize-none h-24 focus:outline-none focus:border-[var(--primary-theme)] dark:bg-[#0a0a0a] dark:text-gray-100"
+                    maxLength={240}
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>This note will be sent directly to the restaurant with your order.</span>
+                    <span>{note.length}/240</span>
+                  </div>
                 </CardContent>
               </Card>
             </ScrollReveal>

@@ -229,6 +229,7 @@ export default function OrderDetails() {
             deliveryPartnerId: order.deliveryPartnerId || order.dispatch?.deliveryPartnerId || null,
             dispatchStatus: order.dispatch?.status || null,
             reason: order.cancellationReason || '',
+            note: order.note || order.orderNote || order.instructions || '',
             timeline: [
               { event: 'Order placed', timestamp: new Date(order.createdAt).toLocaleString('en-GB'), status: 'completed' },
               ...(reached.confirmed ? [{ event: 'Order confirmed', timestamp: order.tracking?.confirmed?.timestamp ? new Date(order.tracking.confirmed.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
@@ -498,6 +499,27 @@ export default function OrderDetails() {
     doc.setFont("helvetica", "normal")
     doc.text(`Payment Status: ${orderData.billing.paymentStatus}`, leftMargin, yPosition)
     yPosition += 10
+
+    // Customer Note / Cooking Instructions (if exists)
+    if (orderData.note) {
+      doc.setLineWidth(0.5)
+      ensureSpace(25)
+      doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition)
+      yPosition += 8
+
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(180, 83, 9)
+      doc.text("NOTE FROM CUSTOMER / COOKING INSTRUCTIONS:", leftMargin, yPosition)
+      yPosition += 6
+
+      doc.setFontSize(9.5)
+      doc.setFont("helvetica", "normal")
+      const noteLines = doc.splitTextToSize(orderData.note, pageWidth - (leftMargin + rightMargin))
+      doc.text(noteLines, leftMargin, yPosition)
+      yPosition += (noteLines.length * 5) + 5
+      doc.setTextColor(0, 0, 0)
+    }
 
     // Rejection/Cancellation Reason (if exists)
     if (orderData.reason) {
@@ -797,6 +819,25 @@ export default function OrderDetails() {
             </div>
           ))}
         </div>
+
+        {/* Cooking Instructions / Customer Note Section */}
+        {orderData.note && (
+          <div>
+            <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+              Cooking Instructions / Restaurant Note
+            </h2>
+            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 flex items-start gap-3 shadow-xs">
+              <div className="flex-1">
+                <p className="text-xs font-bold text-amber-900 uppercase tracking-wide mb-1">
+                  Customer Request:
+                </p>
+                <p className="text-sm font-semibold text-amber-950 leading-relaxed">
+                  "{orderData.note}"
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Bill Details Section */}
         <div>

@@ -112,6 +112,7 @@ const transformOrderForList = (order) => ({
   paymentMethod: order.paymentMethod || order.payment?.method || null,
   deliveryPartnerId: order.dispatch?.deliveryPartnerId || order.deliveryPartnerId || null,
   dispatchStatus: order.dispatch?.status || null,
+  note: order.note || order.orderNote || order.instructions || "",
   preparingTimestamp: order.tracking?.preparing?.timestamp
     ? new Date(order.tracking.preparing.timestamp)
     : new Date(order.createdAt || Date.now()),
@@ -1718,6 +1719,18 @@ export default function OrdersMain() {
                   {selectedOrder.itemsSummary}
                 </p>
               </div>
+
+              {selectedOrder.note && (
+                <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-[11px] font-bold text-amber-900 mb-0.5 uppercase tracking-wider flex items-center gap-1">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                    Note for Restaurant / Cooking Instructions:
+                  </p>
+                  <p className="text-xs text-amber-950 font-semibold">
+                    "{selectedOrder.note}"
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center justify-between text-[11px] text-gray-500 mb-4">
                 {/* Hide ETA for ready orders */}

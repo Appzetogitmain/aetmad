@@ -602,6 +602,19 @@ export default function UserOrderDetails() {
           ))}
         </div>
 
+        {/* Note for Restaurant / Cooking Instructions Card */}
+        {order?.note && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-xl p-4 shadow-xs">
+            <div className="flex items-center gap-2 mb-1 text-amber-800 dark:text-amber-400">
+              <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider">Note for Restaurant</h3>
+            </div>
+            <p className="text-sm font-semibold text-amber-950 dark:text-amber-200 pl-6">
+              "{order.note}"
+            </p>
+          </div>
+        )}
+
         {/* Bill Summary Card */}
         <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-hidden">
           <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-neutral-700">
