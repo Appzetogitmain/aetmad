@@ -1144,9 +1144,9 @@ export default function ExploreMore() {
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
                   <Trash2 className="w-5 h-5 text-red-600" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">Delete Account?</h3>
+                <h3 className="text-lg font-bold text-red-600">Permanently Delete Account?</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  This action cannot be undone. To confirm, type <strong className="text-gray-900">DELETE</strong> below.
+                  This action will permanently delete your restaurant account and data. This action cannot be undone. To confirm, type <strong className="text-gray-900">DELETE</strong> below.
                 </p>
               </div>
 
@@ -1173,9 +1173,9 @@ export default function ExploreMore() {
                   type="button"
                   onClick={handleDeleteAccount}
                   disabled={isDeleting || deleteInput !== "DELETE"}
-                  className="rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-2xl bg-red-600 px-4 py-3 text-xs sm:text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isDeleting ? "Deleting..." : "Delete"}
+                  {isDeleting ? "Deleting..." : "Permanently Delete"}
                 </button>
               </div>
             </motion.div>

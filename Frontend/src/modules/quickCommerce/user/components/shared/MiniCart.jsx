@@ -21,7 +21,7 @@ const MiniCart = ({
     const location = useLocation();
 
     // Show up to 2 product images
-    const displayItems = cart.slice(0, 2);
+    const displayItems = Array.isArray(cart) ? cart.slice(0, 2) : [];
 
     const path = location.pathname.replace(/\/$/, '') || '/';
     const normalizedQuickPath =

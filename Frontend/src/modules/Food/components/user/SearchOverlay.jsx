@@ -12,6 +12,8 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
   const inputRef = useRef(null)
   const [allFoods, setAllFoods] = useState([])
   const [filteredFoods, setFilteredFoods] = useState([])
+  const [allRestaurants, setAllRestaurants] = useState([])
+  const [filteredRestaurants, setFilteredRestaurants] = useState([])
   const [recentSuggestions, setRecentSuggestions] = useState([])
   const [loadingFoods, setLoadingFoods] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -55,33 +57,62 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
       return ""
     }
 
-    const fetchDishesFromDB = async () => {
+    const fetchDataFromDB = async () => {
       setLoadingFoods(true)
       try {
-        const dishesRes = await restaurantAPI.getPublicDishes({ limit: 800 })
-        const dishes =
-          dishesRes?.data?.data?.dishes ||
-          dishesRes?.data?.dishes ||
-          []
+        const [dishesRes, restaurantsRes] = await Promise.allSettled([
+          restaurantAPI.getPublicDishes({ limit: 800 }),
+          restaurantAPI.getRestaurants({ limit: 100 }),
+        ])
 
-        const normalized = (Array.isArray(dishes) ? dishes : [])
-          .filter((dish) => dish?.name)
-          .map((dish, index) => ({
-            id: dish?.id || dish?._id || `dish-${index}`,
-            name: String(dish.name).trim(),
-            image: getImageUrl(dish?.image),
-          }))
+        if (dishesRes.status === "fulfilled") {
+          const dishes =
+            dishesRes.value?.data?.data?.dishes ||
+            dishesRes.value?.data?.dishes ||
+            []
 
-        setAllFoods(normalized)
+          const normalizedDishes = (Array.isArray(dishes) ? dishes : [])
+            .filter((dish) => dish?.name)
+            .map((dish, index) => ({
+              id: dish?.id || dish?._id || `dish-${index}`,
+              name: String(dish.name).trim(),
+              image: getImageUrl(dish?.image),
+            }))
+
+          setAllFoods(normalizedDishes)
+        }
+
+        if (restaurantsRes.status === "fulfilled") {
+          const restaurants =
+            restaurantsRes.value?.data?.restaurants ||
+            restaurantsRes.value?.data?.data ||
+            restaurantsRes.value?.data ||
+            []
+
+          const normalizedRestaurants = (Array.isArray(restaurants) ? restaurants : [])
+            .filter((r) => r?.name)
+            .map((r, index) => ({
+              id: r?.id || r?._id || r?.restaurantId || `rest-${index}`,
+              name: String(r.name).trim(),
+              cuisine: r.cuisine || r.cuisines?.join(", ") || "Multi-cuisine",
+              image: getImageUrl(r.image || r.logo || r.bannerImage),
+              rating: r.rating || 4.2,
+              deliveryTime: r.deliveryTime || "25-30 mins",
+              slug: r.slug || r.name.toLowerCase().replace(/\s+/g, "-"),
+            }))
+
+          setAllRestaurants(normalizedRestaurants)
+        }
       } catch {
         setAllFoods([])
+        setAllRestaurants([])
       } finally {
         setLoadingFoods(false)
       }
     }
 
     loadRecentSuggestions()
-    fetchDishesFromDB()
+    fetchDataFromDB()
   }, [isOpen])
 
   useEffect(() => {
@@ -105,13 +136,20 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
   useEffect(() => {
     if (searchValue.trim() === "") {
       setFilteredFoods(allFoods)
+      setFilteredRestaurants(allRestaurants)
     } else {
-      const filtered = allFoods.filter((food) =>
-        food.name.toLowerCase().includes(searchValue.toLowerCase())
+      const query = searchValue.toLowerCase().trim()
+      const foodsFiltered = allFoods.filter((food) =>
+        food.name.toLowerCase().includes(query)
       )
-      setFilteredFoods(filtered)
+      const restaurantsFiltered = allRestaurants.filter((restaurant) =>
+        restaurant.name.toLowerCase().includes(query) ||
+        restaurant.cuisine.toLowerCase().includes(query)
+      )
+      setFilteredFoods(foodsFiltered)
+      setFilteredRestaurants(restaurantsFiltered)
     }
-  }, [searchValue, allFoods])
+  }, [searchValue, allFoods, allRestaurants])
 
   const saveRecentSearch = (term) => {
     const value = String(term || "").trim()
@@ -146,6 +184,13 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
     onSearchChange("")
   }
 
+  const handleRestaurantClick = (restaurant) => {
+    saveRecentSearch(restaurant.name)
+    navigate(`/user/restaurants/${restaurant.slug || restaurant.id}`)
+    onClose()
+    onSearchChange("")
+  }
+
   const handleVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -169,6 +214,8 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
   if (!isOpen) return null
 
+  const hasQuery = searchValue.trim() !== ""
+
   return (
     <div
       className="fixed inset-0 z-[9999] flex flex-col bg-white dark:bg-[#0a0a0a]"
@@ -186,7 +233,7 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                 ref={inputRef}
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search for food, restaurants..."
+                placeholder="Search for restaurants or dishes..."
                 className="pl-12 pr-12 h-12 w-full bg-white dark:bg-[#1a1a1a] border-gray-100 dark:border-gray-800 focus:border-[var(--primary-theme)] dark:focus:border-[var(--primary-theme)] rounded-full text-lg dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <button
@@ -212,41 +259,80 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
 
       <div className="flex-1 overflow-y-auto max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 scrollbar-hide bg-white dark:bg-[#0a0a0a]">
         {/* Suggestions Row */}
-        <div
-          className="mb-6"
-          style={{
-            animation: 'slideDown 0.3s ease-out 0.1s both'
-          }}
-        >
-          <h3 className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[var(--primary-theme)]" />
-            Recent Searches
-          </h3>
-          <div className="flex gap-2 sm:gap-3 flex-wrap">
-            {recentSuggestions.slice(0, 8).map((suggestion, index) => (
-              <button
-                key={suggestion}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 text-gray-700 dark:text-gray-300 hover:text-[var(--primary-theme)] dark:hover:text-red-400 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md"
-                style={{
-                  animation: `scaleIn 0.3s ease-out ${0.1 + index * 0.02}s both`
-                }}
-              >
-                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--primary-theme)] flex-shrink-0" />
-                <span>{suggestion}</span>
-              </button>
-            ))}
+        {recentSuggestions.length > 0 && (
+          <div
+            className="mb-6"
+            style={{
+              animation: 'slideDown 0.3s ease-out 0.1s both'
+            }}
+          >
+            <h3 className="text-sm sm:text-base font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[var(--primary-theme)]" />
+              Recent Searches
+            </h3>
+            <div className="flex gap-2 sm:gap-3 flex-wrap">
+              {recentSuggestions.slice(0, 8).map((suggestion, index) => (
+                <button
+                  key={suggestion}
+                  onClick={() => handleSuggestionClick(suggestion)}
+                  className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700 text-gray-700 dark:text-gray-300 hover:text-[var(--primary-theme)] dark:hover:text-red-400 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md"
+                  style={{
+                    animation: `scaleIn 0.3s ease-out ${0.1 + index * 0.02}s both`
+                  }}
+                >
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--primary-theme)] flex-shrink-0" />
+                  <span>{suggestion}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Food Grid */}
-        <div
-          style={{
-            animation: 'fadeIn 0.3s ease-out 0.2s both'
-          }}
-        >
+        {/* Restaurants Section */}
+        {filteredRestaurants.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4">
+              {hasQuery ? `Restaurants (${filteredRestaurants.length})` : "Popular Restaurants"}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredRestaurants.slice(0, 6).map((restaurant) => (
+                <div
+                  key={restaurant.id}
+                  onClick={() => handleRestaurantClick(restaurant)}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+                    {restaurant.image ? (
+                      <img src={restaurant.image} alt={restaurant.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center font-bold text-gray-400">
+                        {restaurant.name.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate group-hover:text-[var(--primary-theme)] transition-colors">
+                      {restaurant.name}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {restaurant.cuisine}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                      <span className="font-bold text-green-600 dark:text-green-400">★ {restaurant.rating}</span>
+                      <span>•</span>
+                      <span>{restaurant.deliveryTime}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dishes Section */}
+        <div>
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6">
-            {searchValue.trim() === "" ? "All Dishes" : `Search Results (${filteredFoods.length})`}
+            {hasQuery ? `Dishes (${filteredFoods.length})` : "All Dishes"}
           </h3>
           {filteredFoods.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
@@ -281,21 +367,21 @@ export default function SearchOverlay({ isOpen, onClose, searchValue, onSearchCh
                 </div>
               ))}
             </div>
-          ) : (
+          ) : filteredRestaurants.length === 0 && (
             <div className="text-center py-12 sm:py-16">
               {loadingFoods ? (
                 <>
                   <Loader2 className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4 animate-spin" />
-                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading dishes from database...</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">Loading dishes and restaurants...</p>
                 </>
               ) : (
                 <>
                   <Search className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-600 dark:text-gray-400 text-base sm:text-lg font-semibold">
-                    {searchValue.trim() ? `No results found for "${searchValue}"` : "No dishes found in database"}
+                    {searchValue.trim() ? `No results found for "${searchValue}"` : "No results found"}
                   </p>
                   <p className="text-sm sm:text-base text-gray-500 dark:text-gray-500 mt-2">
-                    {searchValue.trim() ? "Try a different search term" : "Add menu items in restaurant menus to show here"}
+                    Try searching for restaurant names or food dishes
                   </p>
                 </>
               )}

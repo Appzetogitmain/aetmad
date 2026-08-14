@@ -280,9 +280,9 @@ export const ProfileV2 = () => {
             className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-black text-gray-900 mb-2">Delete Account?</h3>
+            <h3 className="text-base font-black text-red-600 mb-2">Permanently Delete Account?</h3>
             <p className="text-sm text-gray-500 mb-4">
-              This action cannot be undone. To confirm, type <strong>DELETE</strong> below.
+              This action will permanently delete your delivery partner account. This action cannot be undone. To confirm, type <strong>DELETE</strong> below.
             </p>
             <div className="mb-5">
               <input 
@@ -304,9 +304,9 @@ export const ProfileV2 = () => {
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleteSubmitting || deleteInput !== "DELETE"}
-                className="flex-1 h-11 rounded-xl bg-red-600 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed"
+                className="flex-1 h-11 rounded-xl bg-red-600 text-white font-bold text-xs sm:text-sm disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {deleteSubmitting ? "Deleting..." : "Delete"}
+                {deleteSubmitting ? "Deleting..." : "Permanently Delete"}
               </button>
             </div>
           </div>

@@ -21,6 +21,7 @@ const SearchPage = () => {
 
     const [query, setQuery] = useState(initialQuery);
     const [allProducts, setAllProducts] = useState([]);
+    const [allStores, setAllStores] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const trimmedQuery = query.trim();
@@ -50,28 +51,33 @@ const SearchPage = () => {
             deliveryTime: '8-15 mins'
         }));
 
-    // Fetch quick products
+    // Fetch quick products and stores
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchInitialData = async () => {
             const hasValidLocation =
                 Number.isFinite(currentLocation?.latitude) &&
                 Number.isFinite(currentLocation?.longitude);
             if (!hasValidLocation) {
                 setAllProducts([]);
+                setAllStores([]);
                 setIsLoading(false);
                 return;
             }
             setIsLoading(true);
             try {
-                const response = await customerApi.getProducts({
-                    limit: 100,
-                    lat: currentLocation.latitude,
-                    lng: currentLocation.longitude,
-                });
-                if (response.data.success) {
-                    const rawResult = response.data.result;
-                    const dbProds = Array.isArray(response.data.results)
-                        ? response.data.results
+                const [productsRes, storesRes] = await Promise.allSettled([
+                    customerApi.getProducts({
+                        limit: 100,
+                        lat: currentLocation.latitude,
+                        lng: currentLocation.longitude,
+                    }),
+                    customerApi.getStores(),
+                ]);
+
+                if (productsRes.status === 'fulfilled' && productsRes.value?.data?.success) {
+                    const rawResult = productsRes.value.data.result;
+                    const dbProds = Array.isArray(productsRes.value.data.results)
+                        ? productsRes.value.data.results
                         : Array.isArray(rawResult?.items)
                         ? rawResult.items
                         : Array.isArray(rawResult)
@@ -81,13 +87,17 @@ const SearchPage = () => {
                         setAllProducts(mapProducts(dbProds));
                     }
                 }
+
+                if (storesRes.status === 'fulfilled' && storesRes.value?.data?.success) {
+                    setAllStores(storesRes.value.data.results || []);
+                }
             } catch (error) {
-                console.error('Error fetching products:', error);
+                console.error('Error fetching search data:', error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchProducts();
+        fetchInitialData();
     }, [currentLocation?.latitude, currentLocation?.longitude, trimmedQuery]);
 
     // Save search term to history
@@ -176,6 +186,14 @@ const SearchPage = () => {
         );
     }, [trimmedQuery, allProducts]);
 
+    const storeResults = useMemo(() => {
+        if (!trimmedQuery) return [];
+        return allStores.filter((store) =>
+            store.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+            store.address?.toLowerCase().includes(trimmedQuery.toLowerCase())
+        );
+    }, [trimmedQuery, allStores]);
+
     // Lowest Price Section
     const lowestPriceProducts = useMemo(() => {
         return [...allProducts]
@@ -230,7 +248,7 @@ const SearchPage = () => {
                         <input
                             autoFocus
                             type="text"
-                            placeholder='Search quick products like "eggs"'
+                            placeholder="Search stores and items..."
                             value={query}
                             onKeyDown={handleKeyDown}
                             onChange={(e) => setQuery(e.target.value)}
@@ -260,32 +278,76 @@ const SearchPage = () => {
             <div className="mx-auto w-full max-w-7xl p-4 md:p-5 space-y-8 pb-28">
                 {/* Search Results List */}
                 {trimmedQuery ? (
-                    <section>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-black text-slate-800 dark:text-slate-200 tracking-tight transition-colors">
-                                Search Results
-                            </h2>
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{results.length} found</span>
-                        </div>
-
-                        {results.length > 0 ? (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
-                                {results.map((product) => (
-                                    <div key={product.id} onClick={() => saveSearch(trimmedQuery)}>
-                                        <ProductCard product={product} compact={isMobile} />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-16 flex flex-col items-center text-center">
-                                <div className="h-20 w-20 bg-slate-50 dark:bg-card rounded-full flex items-center justify-center mb-4">
-                                    <Search size={32} className="text-slate-300 dark:text-slate-600" />
+                    <div className="space-y-8">
+                        {/* Stores Section */}
+                        {storeResults.length > 0 && (
+                            <section>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight">
+                                        Stores ({storeResults.length})
+                                    </h2>
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">No products found</h3>
-                                <p className="text-slate-400 text-sm">Try different keywords or check spelling.</p>
-                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                    {storeResults.map((store) => (
+                                        <div
+                                            key={store._id || store.id}
+                                            onClick={() => {
+                                                saveSearch(trimmedQuery);
+                                                navigate(`/quick/stores/${store._id || store.id}`);
+                                            }}
+                                            className="flex items-center gap-3 p-3 bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md cursor-pointer transition-all"
+                                        >
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center">
+                                                {store.image ? (
+                                                    <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <span className="text-xl font-bold text-slate-400">{store.name?.charAt(0)}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
+                                                    {store.name}
+                                                </h4>
+                                                <p className="text-xs text-slate-400 truncate mt-0.5">
+                                                    {store.address || "Curated Boutique Store"}
+                                                </p>
+                                                <span className="text-[10px] font-bold text-[#0c831f] uppercase tracking-wider mt-1 block">
+                                                    Delivery in 10-15 mins
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
                         )}
-                    </section>
+
+                        {/* Items Section */}
+                        <section>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight">
+                                    Items ({results.length})
+                                </h2>
+                            </div>
+
+                            {results.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
+                                    {results.map((product) => (
+                                        <div key={product.id} onClick={() => saveSearch(trimmedQuery)}>
+                                            <ProductCard product={product} compact={isMobile} />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : storeResults.length === 0 && (
+                                <div className="py-16 flex flex-col items-center text-center">
+                                    <div className="h-20 w-20 bg-slate-50 dark:bg-card rounded-full flex items-center justify-center mb-4">
+                                        <Search size={32} className="text-slate-300 dark:text-slate-600" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">No results found</h3>
+                                    <p className="text-slate-400 text-sm">Try different keywords or search for stores or items.</p>
+                                </div>
+                            )}
+                        </section>
+                    </div>
                 ) : (
                     <>
                         {/* 1. Recently Searched Item Section */}

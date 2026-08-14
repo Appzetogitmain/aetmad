@@ -764,7 +764,7 @@ export default function Profile() {
                     <Palette className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                   </motion.div>
                   <span className="text-base font-medium text-gray-900 dark:text-white">
-                    Appearance
+                    Theme
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -922,12 +922,12 @@ export default function Profile() {
 
 
 
-        {/* Quick Commerce Section */}
+        {/* Mart Section */}
         <div className="mb-3">
           <div className="flex items-center gap-2 mb-2 px-1">
             <div className="w-1 h-4 bg-[#0c831f] rounded"></div>
             <h3 className="text-base font-semibold text-gray-900 dark:text-white">
-              Quick Commerce
+              Mart
             </h3>
           </div>
           <div className="space-y-2">
@@ -945,7 +945,7 @@ export default function Profile() {
                         <Building2 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
                       </motion.div>
                       <span className="text-base font-medium text-gray-900 dark:text-white">
-                        Quick orders
+                        Mart orders
                       </span>
                     </div>
                     <motion.div whileHover={{ x: 4 }} transition={{ duration: 0.2 }}>
@@ -1169,7 +1169,7 @@ export default function Profile() {
                       />
                     </motion.div>
                     <span className="text-base font-medium text-red-600 dark:text-red-500">
-                      {isDeleting ? "Deleting..." : "Delete account"}
+                      {isDeleting ? "Deleting..." : "Permanently delete account"}
                     </span>
                   </div>
                   <motion.div
@@ -1294,17 +1294,17 @@ export default function Profile() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#1a1a1a] p-5 shadow-2xl border border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-bold text-red-600 dark:text-red-500">
-              Delete Account?
+              Permanently Delete Account?
             </h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              This action cannot be undone. To confirm, type <strong className="text-gray-900 dark:text-white">DELETE</strong> below.
+              This action will permanently delete your account and all associated data. This action cannot be undone. To confirm, type <strong className="text-gray-900 dark:text-white">DELETE</strong> below.
             </p>
             <div className="mt-4">
               <input 
                 type="text" 
                 value={deleteInput} 
                 onChange={(e) => setDeleteInput(e.target.value.toUpperCase())} 
-                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white text-center font-bold tracking-widest"
                 placeholder="DELETE"
               />
             </div>
@@ -1320,23 +1320,23 @@ export default function Profile() {
               </Button>
               <Button
                 type="button"
-                className="flex-1 rounded-xl bg-[#CB202D] hover:bg-[#b01c27] text-white disabled:bg-red-400 disabled:cursor-not-allowed"
+                className="flex-1 rounded-xl bg-[#CB202D] hover:bg-[#b01c27] text-white disabled:bg-red-400 disabled:cursor-not-allowed text-xs sm:text-sm font-bold"
                 onClick={handleDeleteAccount}
                 disabled={isDeleting || deleteInput !== "DELETE"}
               >
-                Delete
+                {isDeleting ? "Deleting..." : "Permanently Delete"}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Appearance Popup */}
+      {/* Theme Popup */}
       <Dialog open={appearanceOpen} onOpenChange={setAppearanceOpen}>
         <DialogContent className="max-w-sm md:max-w-md lg:max-w-lg w-[calc(100%-2rem)] rounded-2xl p-0 overflow-hidden bg-white dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-800">
           <DialogHeader className="p-5 pb-3">
             <DialogTitle className="text-lg font-bold text-gray-900 dark:text-white">
-              Appearance
+              Theme
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">
               Choose your preferred theme
