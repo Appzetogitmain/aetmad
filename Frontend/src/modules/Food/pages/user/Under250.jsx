@@ -27,6 +27,37 @@ const debugError = (...args) => {}
 const RUPEE_SYMBOL = "\u20B9"
 const UNDER_250_FILTERS_STORAGE_KEY = "food-under-250-filters"
 
+const getDiscountPercentage = (item) => {
+  if (!item) return 0;
+  if (item.discountType === 'Percent' && Number(item.discountAmount) > 0) {
+    return Math.min(100, Math.max(1, Math.round(Number(item.discountAmount))));
+  }
+  if (typeof item.discount === 'string') {
+    const match = item.discount.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (match) return Math.min(100, Math.max(1, Math.round(parseFloat(match[1]))));
+  }
+  if (typeof item.discount === 'number' && item.discount > 0) {
+    return Math.min(100, Math.max(1, Math.round(item.discount)));
+  }
+  const price = Number(item.price || 0);
+  const originalPrice = Number(item.originalPrice || item.regularPrice || 0);
+  if (originalPrice > price && price > 0) {
+    const pct = Math.round(((originalPrice - price) / originalPrice) * 100);
+    if (pct > 0) return Math.min(100, pct);
+  }
+  if (Number(item.discountAmount) > 0 && price > 0) {
+    const original = price + Number(item.discountAmount);
+    const pct = Math.round((Number(item.discountAmount) / original) * 100);
+    if (pct > 0) return Math.min(100, pct);
+  }
+  return 0;
+};
+
+const hasDiscount = (item) => {
+  if (!item || item.isAvailable === false) return false;
+  return getDiscountPercentage(item) > 0 || Number(item.discountAmount) > 0 || Number(item.originalPrice || 0) > Number(item.price || 0);
+};
+
 const readUnder250Filters = () => {
   if (typeof window === "undefined") {
     return {
@@ -105,6 +136,7 @@ export default function Under250() {
 
   const sortOptions = [
     { id: null, label: 'Relevance' },
+    { id: 'discount-high', label: 'Discount: High to Low' },
     { id: 'rating-high', label: 'Rating: High to Low' },
     { id: 'delivery-time-low', label: 'Estimated Time: Low to High' },
     { id: 'distance-low', label: 'Distance: Low to High' },
@@ -188,7 +220,14 @@ export default function Under250() {
     }
 
     // Apply sorting
-    if (selectedSort === 'rating-high') {
+    if (selectedSort === 'discount-high') {
+      filtered.sort((a, b) => {
+        const maxDiscA = Math.max(...(a.menuItems || []).map(i => i.discountPct || 0), 0);
+        const maxDiscB = Math.max(...(b.menuItems || []).map(i => i.discountPct || 0), 0);
+        if (maxDiscB !== maxDiscA) return maxDiscB - maxDiscA;
+        return (b.rating || 0) - (a.rating || 0);
+      });
+    } else if (selectedSort === 'rating-high') {
       filtered.sort((a, b) => {
         const ratingA = a.rating || 0
         const ratingB = b.rating || 0
@@ -237,11 +276,12 @@ export default function Under250() {
     return filtered
   }, [under250Restaurants, selectedSort, under30MinsFilter, activeCategory, categories])
 
-  // Fetch under-250 banner from public API
+  // Fetch banner from public API
   useEffect(() => {
     let cancelled = false
     setLoadingBanner(true)
-    api.get('/food/hero-banners/under-250/public')
+    api.get('/food/hero-banners/most-discounted/public')
+      .catch(() => api.get('/food/hero-banners/under-250/public'))
       .then((res) => {
         if (cancelled) return
         const data = res?.data?.data
@@ -364,14 +404,19 @@ export default function Under250() {
               const menuResponse = await restaurantAPI.getMenuByRestaurantId(restaurantId)
               const menu = getMenuFromResponse(menuResponse)
               const menuItems = flattenMenuItems(menu)
-                .filter((item) => Number(item?.price || 0) <= 250 && item?.isAvailable !== false)
+                .filter((item) => hasDiscount(item))
                 .map((item) => {
                   const foodType = String(item?.foodType || "").toLowerCase()
                   const isVeg = foodType.includes("veg") && !foodType.includes("non")
+                  const discountPct = getDiscountPercentage(item)
+                  const price = Number(item?.price || 0)
+                  const originalPrice = Number(item?.originalPrice || item?.regularPrice || 0) || (discountPct > 0 ? Math.round(price / (1 - discountPct / 100)) : 0)
                   return {
                     ...item,
                     id: String(item?.id || item?._id || `${restaurantId}-${item?.name || "dish"}`),
-                    price: Number(item?.price || 0),
+                    price,
+                    originalPrice,
+                    discountPct,
                     isVeg,
                     image:
                       item?.image ||
@@ -383,6 +428,7 @@ export default function Under250() {
                       "",
                   }
                 })
+                .sort((a, b) => b.discountPct - a.discountPct)
 
               if (menuItems.length === 0) return null
 
@@ -940,7 +986,7 @@ export default function Under250() {
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10 pt-16">
           <span className="text-[10px] sm:text-xs font-bold tracking-[0.3em] text-[#D4AF37] uppercase mb-2 drop-shadow-md">Aetmad Exclusive</span>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-serif font-black text-white text-center tracking-tight drop-shadow-lg px-4 leading-tight">
-            Curated Under <br className="sm:hidden" /><span className="text-[#F3E5AB]">{RUPEE_SYMBOL}250</span>
+            Most <span className="text-[#F3E5AB]">Discounted</span> Deals
           </h1>
           <div className="w-16 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mt-4 opacity-70" />
         </div>
@@ -1043,7 +1089,7 @@ export default function Under250() {
           <div className="flex justify-center items-center py-12">
             <div className="text-gray-500 dark:text-gray-400">
               {under250Restaurants.length === 0
-                ? `No restaurants with dishes under ${RUPEE_SYMBOL}250 found.`
+                ? "No restaurants with discounted food items found."
                 : "No restaurants match the selected filters."}
             </div>
           </div>
@@ -1138,6 +1184,13 @@ export default function Under250() {
                                   <div className="h-2.5 w-2.5 rounded-full bg-green-600" />
                                 </motion.div>
                               )}
+
+                              {/* Discount Badge */}
+                              {(item.discountPct > 0 || item.discount) && (
+                                <div className="absolute top-3 right-3 md:top-4 md:right-4 bg-gradient-to-r from-red-600 to-amber-600 text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full shadow-md z-10 tracking-wide uppercase">
+                                  {item.discountPct > 0 ? `${item.discountPct}% OFF` : (typeof item.discount === 'string' ? item.discount : 'OFFER')}
+                                </div>
+                              )}
                             </div>
 
                             {/* Item Details */}
@@ -1154,12 +1207,16 @@ export default function Under250() {
                               </div>
                               <div className="flex items-center justify-between mt-4">
                                 <div className="flex flex-col">
-                                  {item.bestPrice && (
-                                    <span className="text-[10px] uppercase font-bold tracking-widest text-[#D4AF37] mb-0.5">Best price</span>
-                                  )}
-                                  <p className="text-lg md:text-xl lg:text-2xl font-black text-[#0B3122] dark:text-[#D4AF37]">
-                                    {RUPEE_SYMBOL}{Math.round(item.price)}
-                                  </p>
+                                  <div className="flex items-baseline gap-1.5">
+                                    <p className="text-lg md:text-xl lg:text-2xl font-black text-[#0B3122] dark:text-[#D4AF37]">
+                                      {RUPEE_SYMBOL}{Math.round(item.price)}
+                                    </p>
+                                    {item.originalPrice > item.price && (
+                                      <p className="text-xs md:text-sm line-through text-gray-400 font-medium">
+                                        {RUPEE_SYMBOL}{Math.round(item.originalPrice)}
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                                 {quantity > 0 ? (
                                   <Link to="/user/cart" onClick={(e) => e.stopPropagation()}>

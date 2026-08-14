@@ -75,16 +75,25 @@ router.patch('/hero-banners/:id/order', updateHeroBannerOrderController);
 router.patch('/hero-banners/:id/status', toggleHeroBannerStatusController);
 router.patch('/hero-banners/:id', updateHeroBannerController);
 
-// Admin under 250 banners
+// Admin under 250 & most discounted banners
 router.get('/hero-banners/under-250', listUnder250BannersController);
+router.get('/hero-banners/most-discounted', listUnder250BannersController);
 router.post(
     '/hero-banners/under-250/multiple',
     upload.array('files'),
     uploadUnder250BannersController
 );
+router.post(
+    '/hero-banners/most-discounted/multiple',
+    upload.array('files'),
+    uploadUnder250BannersController
+);
 router.delete('/hero-banners/under-250/:id', deleteUnder250BannerController);
+router.delete('/hero-banners/most-discounted/:id', deleteUnder250BannerController);
 router.patch('/hero-banners/under-250/:id/order', updateUnder250BannerOrderController);
+router.patch('/hero-banners/most-discounted/:id/order', updateUnder250BannerOrderController);
 router.patch('/hero-banners/under-250/:id/status', toggleUnder250BannerStatusController);
+router.patch('/hero-banners/most-discounted/:id/status', toggleUnder250BannerStatusController);
 
 // Admin dining banners
 router.get('/hero-banners/dining', listDiningBannersController);
@@ -123,6 +132,7 @@ router.patch('/hero-banners/gourmet/:id/status', toggleGourmetStatusAdmin);
 // Public landing endpoints (Food user app)
 router.get('/hero-banners/public', getPublicHeroBannersController);
 router.get('/hero-banners/under-250/public', getPublicUnder250BannersController);
+router.get('/hero-banners/most-discounted/public', getPublicUnder250BannersController);
 router.get('/hero-banners/dining/public', getPublicDiningBannersController);
 router.get('/explore-icons/public', getPublicExploreIconsController);
 router.get('/hero-banners/gourmet/public', getPublicGourmetController);

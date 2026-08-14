@@ -21,7 +21,7 @@ const CategoryRail = memo(({
         {/* Offers Card - Rounded Square */}
         <div 
           className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer group"
-          onClick={() => navigate("/user/under-250")}
+          onClick={() => navigate("/user/most-discounted")}
         >
           <div className="relative w-[72px] h-[72px] sm:w-[84px] sm:h-[84px] rounded-full flex flex-col items-center justify-center p-1 shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-transform duration-300 group-hover:scale-110 group-active:scale-95 group-hover:shadow-[0_0_35px_rgba(212,175,55,0.7)]">
             
@@ -38,14 +38,14 @@ const CategoryRail = memo(({
             </div>
 
             {/* Text Content (Shifted Upwards) */}
-            <div className="flex flex-col items-center z-10 -mt-2">
-              <span className="text-[9px] font-black text-[#D4AF37] tracking-widest drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] mb-0.5">UNDER</span>
-              <span className="text-[16px] sm:text-[18px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F3E5AB] to-[#D4AF37] tracking-tighter leading-none drop-shadow-[0_0_10px_rgba(212,175,55,0.5)]">₹250</span>
+            <div className="flex flex-col items-center z-10 -mt-1 text-center">
+              <span className="text-[8px] sm:text-[9px] font-black text-[#D4AF37] tracking-widest drop-shadow-[0_0_8px_rgba(212,175,55,0.8)] leading-none mb-0.5">MOST</span>
+              <span className="text-[9px] sm:text-[10px] font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F3E5AB] to-[#D4AF37] tracking-tighter leading-tight drop-shadow-[0_0_10px_rgba(212,175,55,0.5)] uppercase">DISCOUNTED</span>
             </div>
             
             {/* Overlapping Explore Pill */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center justify-center px-2.5 py-[1.5px] bg-[#0B3122] rounded-full shadow-[0_4px_10px_rgba(212,175,55,0.6)] z-20 border border-[#D4AF37] group-hover:bg-[#D4AF37] transition-colors duration-300">
-              <span className="text-[7px] font-extrabold text-[#D4AF37] group-hover:text-[#0B3122] uppercase tracking-[0.2em] shadow-sm leading-none pt-[1px]">Explore</span>
+              <span className="text-[7px] font-extrabold text-[#D4AF37] group-hover:text-[#0B3122] uppercase tracking-[0.15em] shadow-sm leading-none pt-[1px]">Explore</span>
             </div>
           </div>
           <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-1">Offers</span>

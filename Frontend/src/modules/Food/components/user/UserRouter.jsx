@@ -115,6 +115,7 @@ export default function UserRouter() {
             }
           />
           <Route path="under-250" element={<Under250 />} />
+          <Route path="most-discounted" element={<Under250 />} />
           <Route path="categories" element={<Categories />} />
           <Route path="category/:category" element={<CategoryPage />} />
           <Route path="restaurants" element={<Restaurants />} />

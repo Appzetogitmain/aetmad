@@ -60,7 +60,7 @@ export default function DesktopNavbar({ showLogo = true, hideExtras = false }) {
     const profileSource = new URLSearchParams(location.search).get("from")
     const isQuick = normalizedPath === "/quick" || normalizedPath.startsWith("/quick/")
     const isBakery = location.pathname.startsWith("/food/user/bakery") || location.pathname.startsWith("/food/bakery")
-    const isUnder250 = location.pathname === "/food/user/under-250" || location.pathname === "/food/under-250"
+    const isUnder250 = location.pathname === "/food/user/under-250" || location.pathname === "/food/under-250" || location.pathname === "/food/user/most-discounted" || location.pathname === "/food/most-discounted"
     const isSharedFoodProfile =
         (normalizedPath === "/profile" || normalizedPath.startsWith("/profile/")) &&
         profileSource !== "quick"
@@ -68,12 +68,14 @@ export default function DesktopNavbar({ showLogo = true, hideExtras = false }) {
         location.pathname.startsWith("/food/user/profile") ||
         location.pathname.startsWith("/food/profile") ||
         isSharedFoodProfile
-    const isDelivery = !isBakery && !isUnder250 && !isProfile && !isQuick && (location.pathname === "/food/user" || location.pathname === "/food" || (location.pathname.startsWith("/food/user") && !location.pathname.includes("/bakery") && !location.pathname.includes("/under-250") && !location.pathname.includes("/profile")))
+    const isDelivery = !isBakery && !isUnder250 && !isProfile && !isQuick && (location.pathname === "/food/user" || location.pathname === "/food" || (location.pathname.startsWith("/food/user") && !location.pathname.includes("/bakery") && !location.pathname.includes("/under-250") && !location.pathname.includes("/most-discounted") && !location.pathname.includes("/profile")))
     const isBannerRoute =
         location.pathname === "/food/user" ||
         location.pathname === "/food" ||
         location.pathname === "/food/user/under-250" ||
-        location.pathname === "/food/under-250"
+        location.pathname === "/food/under-250" ||
+        location.pathname === "/food/user/most-discounted" ||
+        location.pathname === "/food/most-discounted"
     const searchPlaceholder = isQuick
         ? 'Search for milk, bread, eggs...'
         : "Search for restaurants, food..."
@@ -375,15 +377,15 @@ export default function DesktopNavbar({ showLogo = true, hideExtras = false }) {
                                 )}
                             </Link>
 
-                            {/* Under 250 Tab */}
+                            {/* Most Discounted Tab */}
                             <Link
-                                to="/food/user/under-250"
+                                to="/food/user/most-discounted"
                                 className={`flex flex-col items-center gap-1 px-2 py-1 transition-colors relative group ${isUnder250
                                     ? "text-[var(--primary-theme)] dark:text-[var(--primary-theme)]"
                                     : "text-gray-600 dark:text-gray-400 hover:text-[var(--primary-theme)] dark:hover:text-[var(--primary-theme)]"
                                     }`}
                             >
-                                <span className="text-sm font-bold tracking-wide uppercase">Under 250</span>
+                                <span className="text-sm font-bold tracking-wide uppercase">Most Discounted</span>
                                 {isUnder250 && (
                                     <motion.div
                                         layoutId="navIndicator"
