@@ -109,15 +109,15 @@ export async function getActiveCommissionRules() {
 
 export async function getRiderEarning(distanceKm) {
   const d = Number(distanceKm);
-  if (!Number.isFinite(d) || d < 0) return 0;
+  if (!Number.isFinite(d) || d < 0) return 25;
   const rules = await getActiveCommissionRules();
-  if (!rules.length) return 0;
+  if (!rules.length) return 25;
 
   const sorted = [...rules].sort(
     (a, b) => (a.minDistance || 0) - (b.minDistance || 0),
   );
   const baseRule = sorted.find((r) => Number(r.minDistance || 0) === 0) || null;
-  if (!baseRule) return 0;
+  if (!baseRule) return 25;
 
   let earning = Number(baseRule.basePayout || 0);
 

@@ -839,7 +839,7 @@ export const useDeliveryNotifications = () => {
 
     socketRef.current = io(socketUrl, {
       path: '/socket.io/',
-      transports: ['polling', 'websocket'], // Allow both
+      transports: ['websocket', 'polling'], // Prioritize WebSocket for instant clean connection
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -854,7 +854,7 @@ export const useDeliveryNotifications = () => {
     debugLog('Socket.IO client created', {
       socketUrl,
       path: '/socket.io/',
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       tokenPresent: Boolean(token),
       tokenPreview,
       deliveryPartnerId,

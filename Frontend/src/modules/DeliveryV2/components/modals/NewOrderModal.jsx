@@ -169,146 +169,192 @@ export const NewOrderModal = ({ order, onAccept, onReject, onMinimize }) => {
           },
         ]);
 
+  const cleanAddressText = (text) => {
+    if (!text) return 'Address not available';
+    const parts = text.split(',').map((s) => s.trim()).filter(Boolean);
+    const unique = [];
+    for (const part of parts) {
+      if (!unique.some((u) => u.toLowerCase() === part.toLowerCase())) {
+        unique.push(part);
+      }
+    }
+    return unique.join(', ');
+  };
+
+  const formattedCustomerAddress = cleanAddressText(customerAddress);
+  const formattedRestaurantAddress = cleanAddressText(restaurantAddress);
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-x-0 bottom-0 h-full z-150 bg-black/60 flex items-end justify-center p-0"
+      className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-xs flex items-end justify-center p-0"
     >
       <motion.div 
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        className="w-full max-w-lg bg-white rounded-t-[3rem] overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col pt-2"
+        transition={{ type: "spring", stiffness: 350, damping: 30 }}
+        className="w-full max-w-lg bg-white dark:bg-[#121212] rounded-t-[32px] overflow-hidden shadow-[0_-20px_60px_rgba(0,0,0,0.4)] flex flex-col"
       >
         {/* Handle / Minimize */}
-        <div className="w-full flex justify-center pb-1 pt-1 bg-white relative z-10 rounded-t-[2rem] -mb-[2px]">
-          <button onClick={onMinimize} className="p-1 hover:bg-gray-100 active:scale-95 transition-all rounded-full flex flex-col items-center">
-             <ChevronDown className="w-5 h-5 text-gray-400 stroke-[3px]" />
-          </button>
+        <div className="w-full flex justify-center pt-2.5 pb-1 bg-white dark:bg-[#121212] relative z-10">
+          <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-700 rounded-full" />
         </div>
 
-        {/* Header Ribbon (Old Green Style) */}
-        <div className="bg-green-500 p-5 flex justify-between items-center text-white border-b border-green-600/20">
-          <div>
-            <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mb-0.5">Incoming Request</p>
-            {mixedOrder && (
-              <div className="mb-2 inline-flex items-center rounded-full border border-white/30 bg-white/15 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-white">
-                Mixed Order
-              </div>
-            )}
-            <h2 className="text-3xl font-extrabold tracking-tight">₹{Number(earnings || 0).toFixed(2)}</h2>
+        {/* Premium Header Banner */}
+        <div className="bg-gradient-to-r from-[#0B3122] via-[#0f4731] to-[#0B3122] px-6 py-4.5 flex justify-between items-center text-white relative overflow-hidden">
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-400/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-emerald-300 text-[10px] font-black uppercase tracking-[0.15em]">
+                {isReturnPickup ? 'RETURN PICKUP' : 'INCOMING REQUEST'}
+              </span>
+              {mixedOrder && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-white/20 text-white uppercase tracking-wider">
+                  Mixed
+                </span>
+              )}
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-baseline gap-1">
+              <span>₹{Number(earnings || 0).toFixed(2)}</span>
+              <span className="text-xs font-semibold text-emerald-300/80">Earning</span>
+            </h2>
           </div>
-          <div className="bg-white/20 border border-white/30 rounded-2xl px-4 py-2 text-white font-bold text-xl shadow-inner tabular-nums">
-            {timeLeft}s
+
+          <div className="relative z-10 flex flex-col items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-2 text-white shadow-inner">
+            <span className="text-xl sm:text-2xl font-black tabular-nums leading-none">{timeLeft}s</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-200 mt-0.5">Timer</span>
           </div>
         </div>
 
         {/* Info Body */}
-        <div className="p-5 pb-8 space-y-6">
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center gap-1 mt-1.5 py-0.5">
-              <div className={`w-4 h-4 rounded-full ${isReturnPickup ? 'bg-blue-500 border-blue-50 shadow-blue-500/20' : 'bg-green-500 border-green-50 shadow-green-500/20'} border-[3px] shadow-lg`} />
-              <div className={`w-0.5 ${pickupStops.length > 1 ? 'h-24' : 'h-14'} bg-dashed border-l-2 border-gray-100`} />
-              <div className={`w-4 h-4 rounded-full ${isReturnPickup ? 'bg-green-500 border-green-50 shadow-green-500/20' : 'bg-blue-500 border-blue-50 shadow-blue-500/20'} border-[3px] shadow-lg`} />
-            </div>
-            <div className="flex-1 space-y-6">
-              <div className="space-y-4">
-                {pickupStops.map((pickup, index) => {
-                  const isReturn = pickup.pickupType === 'return';
-                  const isQuickStore = pickup.pickupType === 'quick';
-                  const pickupLabel = isReturn ? 'Customer Pickup' : (isQuickStore ? 'Store Pickup' : 'Restaurant Pickup');
-                  const pickupAccent = isReturn ? 'text-blue-600' : (isQuickStore ? 'text-[var(--primary-theme)]' : 'text-green-600');
-                  const pickupAddress = pickup.address || 'Address not available';
-                  return (
-                    <div key={pickup.id || `${pickup.pickupType}-${index}`}>
-                      <div className={`flex items-center gap-2 mb-1.5 font-bold text-[9px] uppercase tracking-widest ${pickupAccent}`}>
-                        <ChefHat className="w-3.5 h-3.5" />
-                        <span>{pickupStops.length > 1 ? `${pickupLabel} ${index + 1}` : pickupLabel}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-gray-950 font-bold text-lg leading-tight">{pickup.sourceName || (isQuickStore ? 'Seller store' : 'Restaurant')}</p>
-                        <a 
-                          href={pickup.phone ? `tel:${pickup.phone}` : '#'} 
-                          className="ml-2 w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600 border border-green-100 flex-shrink-0" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!pickup.phone) e.preventDefault();
-                          }}
-                        >
-                          <Phone className="w-4 h-4" />
-                        </a>
-                      </div>
-                      <p className="text-gray-500 text-xs font-medium leading-relaxed line-clamp-1 mt-0.5">{pickupAddress}</p>
-                    </div>
-                  );
-                })}
+        <div className="p-5 sm:p-6 pb-8 space-y-5">
+          {/* Pickup & Drop Route Section */}
+          <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-4 border border-gray-100 dark:border-white/5 flex gap-3.5">
+            {/* Route Track Indicator */}
+            <div className="flex flex-col items-center justify-between py-1">
+              <div className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
               </div>
-              <div>
-                <div className="flex items-center gap-2 mb-1.5 font-bold text-[9px] uppercase tracking-widest text-blue-600">
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{isReturnPickup ? 'Seller Drop' : 'Customer Drop'}</span>
-                </div>
+              <div className="w-0.5 flex-1 bg-gradient-to-b from-emerald-500 via-gray-300 to-blue-500 my-1 rounded-full" />
+              <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-sm flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white" />
+              </div>
+            </div>
+
+            {/* Addresses Details */}
+            <div className="flex-1 space-y-4">
+              {/* Pickup Stop */}
+              {pickupStops.map((pickup, index) => {
+                const isReturn = pickup.pickupType === 'return';
+                const isQuickStore = pickup.pickupType === 'quick';
+                const pickupLabel = isReturn ? 'Customer Pickup' : (isQuickStore ? 'Store Pickup' : 'Restaurant Pickup');
+                const pickupPhone = pickup.phone || restaurantPhone;
+                
+                return (
+                  <div key={pickup.id || `${pickup.pickupType}-${index}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                        <ChefHat className="w-3.5 h-3.5" />
+                        {pickupStops.length > 1 ? `${pickupLabel} ${index + 1}` : pickupLabel}
+                      </span>
+                      {pickupPhone && (
+                        <a 
+                          href={`tel:${pickupPhone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-7 h-7 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                          title="Call Restaurant"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-gray-900 dark:text-white font-bold text-base leading-snug mt-0.5">
+                      {pickup.sourceName || restaurantName}
+                    </p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs font-medium line-clamp-1 mt-0.5">
+                      {cleanAddressText(pickup.address || formattedRestaurantAddress)}
+                    </p>
+                  </div>
+                );
+              })}
+
+              <div className="border-t border-gray-200/60 dark:border-white/5 pt-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-gray-950 font-bold text-lg leading-tight">
-                    {isReturnPickup ? (order.sellerName || 'Seller Store') : 'Customer Location'}
-                  </p>
-                  <a 
-                    href={customerPhone ? `tel:${customerPhone}` : '#'} 
-                    className="ml-2 w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!customerPhone) e.preventDefault();
-                    }}
-                  >
-                    <Phone className="w-4 h-4" />
-                  </a>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {isReturnPickup ? 'Seller Drop' : 'Customer Drop'}
+                  </span>
+                  {customerPhone && (
+                    <a 
+                      href={`tel:${customerPhone}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                      title="Call Customer"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
-                <p className="text-gray-500 text-xs font-medium line-clamp-1 mt-0.5 leading-relaxed">{isReturnPickup ? (order.sellerAddress || 'Seller Address') : customerAddress}</p>
+                <p className="text-gray-900 dark:text-white font-bold text-base leading-snug mt-0.5">
+                  {isReturnPickup ? (order.sellerName || 'Seller Store') : (order.customerName || 'Customer Location')}
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs font-medium line-clamp-1 mt-0.5">
+                  {formattedCustomerAddress}
+                </p>
                 {!isReturnPickup && mapsLink && (
                   <a
                     href={mapsLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex mt-1 text-[9px] font-bold uppercase tracking-widest text-blue-600 hover:text-blue-700"
+                    className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    Open in Google Maps
+                    Open in Google Maps ↗
                   </a>
                 )}
               </div>
             </div>
           </div>
 
+          {/* Time & Distance Chips */}
           <div className="grid grid-cols-2 gap-3">
-             <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-               <Clock className="w-4 h-4 text-[var(--primary-theme)]" />
-               <div className="flex flex-col">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Time</span>
-                  <span className="text-xs font-bold text-gray-900">{etaMins} MINS</span>
-               </div>
-             </div>
-             <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-3">
-               <MapPin className="w-4 h-4 text-gray-400" />
-               <div className="flex flex-col">
-                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Distance</span>
-                  <span className="text-xs font-bold text-gray-900">{distanceKm} KM</span>
-               </div>
-             </div>
+            <div className="p-3.5 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                <Clock className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest">Est. Time</span>
+                <span className="text-sm font-black text-gray-900 dark:text-white">{etaMins} MINS</span>
+              </div>
+            </div>
+            
+            <div className="p-3.5 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                <MapPin className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-widest">Distance</span>
+                <span className="text-sm font-black text-gray-900 dark:text-white">{distanceKm} KM</span>
+              </div>
+            </div>
           </div>
 
-          {/* Action Area */}
-          <div className="space-y-4">
+          {/* Action Slider & Decline */}
+          <div className="space-y-3.5 pt-1">
             <ActionSlider 
-              label="Slide to Accept" 
+              label="Slide to Accept Order" 
               onConfirm={() => onAccept(order)} 
-              color="bg-green-600"
+              color="bg-[#0B3122]"
               successLabel="Order Accepted ✓"
             />
 
             <button 
+              type="button"
               onClick={onReject}
-              className="w-full text-gray-400 font-bold text-[9px] uppercase tracking-widest hover:text-red-500 transition-colors py-1 active:scale-95"
+              className="w-full text-gray-400 font-extrabold text-[10px] uppercase tracking-widest hover:text-red-500 transition-colors py-1.5 active:scale-95"
             >
               Pass this task
             </button>

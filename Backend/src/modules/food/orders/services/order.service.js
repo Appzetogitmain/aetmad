@@ -2185,7 +2185,9 @@ export async function createOrder(userId, dto) {
     );
   }
 
-  const riderEarning = isTakeaway ? 0 : baseRiderEarning + incentiveAmount;
+  const effectiveBaseRiderEarning =
+    baseRiderEarning > 0 ? baseRiderEarning : Number(normalizedPricing.deliveryFee || 25);
+  const riderEarning = isTakeaway ? 0 : effectiveBaseRiderEarning + incentiveAmount;
   const quickDeliveryFeeBase =
     orderType === "mixed" && dispatchStrategy === "express_split"
       ? Number(activeFeeSettings?.deliveryFee || 25)
