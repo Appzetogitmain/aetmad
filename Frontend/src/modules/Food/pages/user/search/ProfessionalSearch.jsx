@@ -78,7 +78,13 @@ export default function ProfessionalSearch() {
   }
 
   const performSearch = useCallback(async (searchTerm, catId) => {
-    if (!searchTerm && !catId) {
+    const term = String(searchTerm || '').trim()
+    if (!term && !catId) {
+      setResults({ restaurants: [], dishes: [] })
+      return
+    }
+
+    if (term && term.length < 3 && !catId) {
       setResults({ restaurants: [], dishes: [] })
       return
     }
@@ -86,23 +92,22 @@ export default function ProfessionalSearch() {
     setLoading(true)
     try {
       const res = await searchAPI.unifiedSearch({
-        q: searchTerm,
+        q: term,
         categoryId: catId,
         lat: userCoords?.latitude,
         lng: userCoords?.longitude,
         zoneId
       })
       
-      if (res.data?.success) {
-        // Grouping results into Restaurants and potential Dishes
-        const all = res.data.data.restaurants || []
+      if (res.data?.success && res.data?.data) {
         setResults({
-          restaurants: all.filter(r => r.matchType === 'restaurant' || !r.matchType),
-          dishes: all.filter(r => r.matchType === 'food')
+          restaurants: res.data.data.restaurants || [],
+          dishes: res.data.data.dishes || []
         })
       }
     } catch (err) {
       console.error("Search failed", err)
+      setResults({ restaurants: [], dishes: [] })
     } finally {
       setLoading(false)
     }
@@ -260,37 +265,45 @@ export default function ProfessionalSearch() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                    <div className="w-1 h-5 bg-[var(--primary-theme)] rounded-full" />
-                   <h2 className="text-lg font-bold dark:text-white">Dishes from restaurants</h2>
+                   <h2 className="text-lg font-bold dark:text-white">Matching Food Items & Dishes ({results.dishes.length})</h2>
                 </div>
-                <div className="grid gap-4">
-                  {results.dishes.map((r) => (
-                    <Link to={`/user/restaurants/${r.slug || r._id}${r.matchedDishId ? `?dish=${r.matchedDishId}` : ''}`} key={r._id} className="flex gap-4 p-3 bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800 hover:shadow-md transition-shadow group">
-                       <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 relative">
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  {results.dishes.map((dish) => (
+                    <Link 
+                      to={`/user/restaurants/${dish.restaurantSlug || dish.restaurantId}?dish=${dish._id || dish.id}`} 
+                      key={dish._id || dish.id} 
+                      className="flex gap-3.5 p-3.5 bg-white dark:bg-zinc-900 rounded-2xl shadow-xs border border-slate-100 dark:border-zinc-800 hover:shadow-md hover:border-[var(--primary-theme)]/40 transition-all group"
+                    >
+                       <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 flex-shrink-0 relative">
                            <img 
-                            src={getMediaUrl(r.matchedDishImage || r.profileImage || r.image || (Array.isArray(r.images) && r.images[0]))} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                            src={getMediaUrl(dish.image || dish.profileImage)} 
+                            alt={dish.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             onError={(e) => (e.target.src = "/placeholder-dish.jpg")}
                           />
-                          {r.pureVegRestaurant && (
-                            <div className="absolute top-1 left-1 w-4 h-4 border border-green-600 p-[1px] bg-white rounded-sm">
-                               <div className="w-full h-full bg-green-600 rounded-full" />
+                          <div className="absolute top-1.5 left-1.5">
+                            <div className={`w-3.5 h-3.5 border ${dish.isVeg || dish.foodType === 'Veg' ? 'border-green-600 bg-white' : 'border-red-600 bg-white'} p-[1px] rounded-xs flex items-center justify-center shadow-xs`}>
+                               <div className={`w-1.5 h-1.5 rounded-full ${dish.isVeg || dish.foodType === 'Veg' ? 'bg-green-600' : 'bg-red-600'}`} />
                             </div>
-                          )}
+                          </div>
                        </div>
                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="text-[var(--primary-theme)] text-[10px] font-bold uppercase tracking-wider mb-1">
-                             Matched: {r.matchedDish || query}
-                          </div>
-                          <h3 className="font-bold text-slate-900 dark:text-white line-clamp-1">{r.restaurantName}</h3>
-                          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400 mt-1">
-                             <div className="flex items-center gap-1">
-                                <Star className="w-3 h-3 text-[var(--primary-theme)] fill-[var(--primary-theme)]" />
-                                <span className="font-semibold text-slate-700 dark:text-white">{r.rating || "New"}</span>
-                             </div>
-                             <span>•</span>
-                             <span>{r.estimatedDeliveryTime || "30-40 mins"}</span>
-                             <span>•</span>
-                             <span className="line-clamp-1">{r.cuisines?.slice(0, 2).join(", ")}</span>
+                          <h3 className="font-bold text-slate-900 dark:text-white text-base line-clamp-1 group-hover:text-[var(--primary-theme)] transition-colors">
+                            {dish.name}
+                          </h3>
+                          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
+                            from <span className="font-semibold text-slate-700 dark:text-zinc-200">{dish.restaurantName}</span>
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                             <span className="font-black text-sm text-slate-900 dark:text-white">
+                               ₹{Number(dish.price || 0).toFixed(2)}
+                             </span>
+                             {dish.rating && (
+                               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
+                                  <Star className="w-2.5 h-2.5 fill-emerald-600 text-emerald-600" />
+                                  <span>{dish.rating}</span>
+                               </div>
+                             )}
                           </div>
                        </div>
                     </Link>

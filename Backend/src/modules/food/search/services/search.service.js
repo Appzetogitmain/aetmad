@@ -110,52 +110,93 @@ export const searchUnified = async (query = {}, options = {}) => {
     }
 
     // 3. Search Matching
+    let matchedDishesList = [];
+
     if (regex) {
-        // A. Search by Restaurant Name / Cuisine
+        // A. Search by Restaurant Name / Cuisine / City / Tags
         const matchedRestaurants = await FoodRestaurant.find({
             ...restaurantFilter,
             $or: [
                 { restaurantName: { $regex: regex } },
-                { cuisines: { $regex: regex } }
+                { name: { $regex: regex } },
+                { cuisines: { $regex: regex } },
+                { 'location.address': { $regex: regex } },
+                { 'location.city': { $regex: regex } },
+                { tags: { $regex: regex } }
             ]
         }).limit(limit * 2).lean();
 
         matchedRestaurants.forEach(r => {
             restaurantIds.add(r._id.toString());
-            restaurantDetailsMap.set(r._id.toString(), { ...r, matchType: 'restaurant' });
+            restaurantDetailsMap.set(r._id.toString(), { 
+                ...r, 
+                id: r._id.toString(),
+                name: r.restaurantName || r.name,
+                matchType: 'restaurant' 
+            });
         });
 
-        // B. Search by Food Item Name
-        const foodFilters = { approvalStatus: 'approved' };
+        // B. Search by Food Item Name / Description / Category
+        const foodFilters = { approvalStatus: 'approved', isAvailable: { $ne: false } };
         if (isVeg === 'true') foodFilters.foodType = 'Veg';
         
         const matchedFoods = await FoodItem.find({
             ...foodFilters,
-            name: { $regex: regex }
-        }).limit(limit * 2).lean();
+            $or: [
+                { name: { $regex: regex } },
+                { description: { $regex: regex } },
+                { categoryName: { $regex: regex } },
+                { category: { $regex: regex } }
+            ]
+        }).limit(limit * 3).lean();
 
-        const foodRestaurantIds = matchedFoods.map(f => f.restaurantId.toString());
+        // Fetch associated restaurants for matched dishes
+        const foodRestaurantIds = [...new Set(matchedFoods.map(f => f.restaurantId ? f.restaurantId.toString() : '').filter(Boolean))];
+        let dishRestaurantsMap = new Map();
         
         if (foodRestaurantIds.length > 0) {
-            const unmatchedIds = foodRestaurantIds.filter(id => !restaurantIds.has(id));
-            if (unmatchedIds.length > 0) {
-                const rsForFoods = await FoodRestaurant.find({
-                    ...restaurantFilter,
-                    _id: { $in: unmatchedIds.map(id => new mongoose.Types.ObjectId(id)) }
-                }).lean();
+            const dishRestaurants = await FoodRestaurant.find({
+                status: 'approved',
+                _id: { $in: foodRestaurantIds.map(id => new mongoose.Types.ObjectId(id)) }
+            }).lean();
 
-                rsForFoods.forEach(r => {
+            dishRestaurants.forEach(r => {
+                dishRestaurantsMap.set(r._id.toString(), r);
+                // Also add to restaurants set if not already present
+                if (!restaurantIds.has(r._id.toString())) {
                     restaurantIds.add(r._id.toString());
-                    restaurantDetailsMap.set(r._id.toString(), { 
-                        ...r, 
-                        matchType: 'food',
-                        matchedDish: matchedFoods.find(f => f.restaurantId.toString() === r._id.toString())?.name,
-                        matchedDishImage: matchedFoods.find(f => f.restaurantId.toString() === r._id.toString())?.image,
-                        matchedDishId: matchedFoods.find(f => f.restaurantId.toString() === r._id.toString())?._id
+                    restaurantDetailsMap.set(r._id.toString(), {
+                        ...r,
+                        id: r._id.toString(),
+                        name: r.restaurantName || r.name,
+                        matchType: 'food'
                     });
-                });
-            }
+                }
+            });
         }
+
+        matchedDishesList = matchedFoods.map(food => {
+            const rest = dishRestaurantsMap.get(food.restaurantId?.toString()) || restaurantDetailsMap.get(food.restaurantId?.toString()) || {};
+            const price = Number(food.price || food.displayPrice || (food.variants && food.variants[0]?.price) || 0);
+            return {
+                _id: food._id,
+                id: food._id.toString(),
+                name: food.name,
+                description: food.description || '',
+                price: price,
+                image: food.image || '',
+                foodType: food.foodType || 'Veg',
+                isVeg: String(food.foodType || '').toLowerCase() === 'veg',
+                isAvailable: food.isAvailable !== false,
+                rating: food.rating || 4.5,
+                preparationTime: food.preparationTime || rest.estimatedDeliveryTimeMinutes ? `${rest.estimatedDeliveryTimeMinutes} mins` : '20-25 mins',
+                restaurantId: rest._id ? rest._id.toString() : food.restaurantId?.toString(),
+                restaurantName: rest.restaurantName || rest.name || 'Restaurant',
+                restaurantImage: rest.profileImage || rest.image || rest.logo || '',
+                restaurantSlug: rest.slug || (rest.restaurantName || rest.name || '').toLowerCase().replace(/\s+/g, '-'),
+                deliveryTime: rest.estimatedDeliveryTimeMinutes ? `${rest.estimatedDeliveryTimeMinutes} mins` : '25-30 mins'
+            };
+        });
     } else {
         // No search text -> List all restaurants matching filters (category/zone)
         const allMatching = await FoodRestaurant.find(restaurantFilter)
@@ -165,7 +206,11 @@ export const searchUnified = async (query = {}, options = {}) => {
             
         allMatching.forEach(r => {
             restaurantIds.add(r._id.toString());
-            restaurantDetailsMap.set(r._id.toString(), r);
+            restaurantDetailsMap.set(r._id.toString(), {
+                ...r,
+                id: r._id.toString(),
+                name: r.restaurantName || r.name
+            });
         });
     }
 
@@ -190,12 +235,14 @@ export const searchUnified = async (query = {}, options = {}) => {
         results.sort((a, b) => (a.distanceScore || 999) - (b.distanceScore || 999));
     }
 
-    // ... (rest of logic up to result formation)
     const finalResult = {
         success: true,
         data: {
             restaurants: results.slice(skip, skip + limit),
-            total: results.length,
+            dishes: matchedDishesList,
+            totalRestaurants: results.length,
+            totalDishes: matchedDishesList.length,
+            total: results.length + matchedDishesList.length,
             page: parseInt(page),
             limit: parseInt(limit),
             zoneFiltered: !!(zoneId && mongoose.Types.ObjectId.isValid(zoneId))

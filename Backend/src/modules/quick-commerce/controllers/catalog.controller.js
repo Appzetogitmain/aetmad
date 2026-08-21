@@ -490,8 +490,23 @@ export const submitProductReview = async (req, res) => {
 
 export const getStores = async (req, res) => {
   try {
-    // Find all approved sellers
-    const stores = await Seller.find({ approvalStatus: 'approved' }).lean();
+    const { search } = req.query;
+    const filter = { approvalStatus: 'approved' };
+
+    if (search && String(search).trim()) {
+      const term = String(search).trim();
+      const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      filter.$or = [
+        { shopName: { $regex: regex } },
+        { name: { $regex: regex } },
+        { description: { $regex: regex } },
+        { 'location.address': { $regex: regex } },
+        { 'location.formattedAddress': { $regex: regex } }
+      ];
+    }
+
+    // Find all approved sellers matching query
+    const stores = await Seller.find(filter).lean();
 
     // Attach sample product images
     const mappedStores = await Promise.all(stores.map(async (store) => {
@@ -502,6 +517,7 @@ export const getStores = async (req, res) => {
           name: store.shopName || store.name || 'Store',
           image: store.logo || store.documents?.shopLicenseImage || sampleProduct?.mainImage || sampleProduct?.image || '',
           description: store.description || '',
+          address: store.location?.address || store.location?.formattedAddress || '',
        };
     }));
 

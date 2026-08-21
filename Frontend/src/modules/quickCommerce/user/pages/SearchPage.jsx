@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation as useRouterLocation } from 'react-router-dom';
-import { Search, ArrowLeft, X, ChevronRight, History, Mic } from 'lucide-react';
+import { Search, ArrowLeft, X, ChevronRight, History, Mic, Store, Sparkles, Loader2, ShoppingBag } from 'lucide-react';
 import { customerApi } from '../services/customerApi';
 import ProductCard from '../components/shared/ProductCard';
 import { useProductDetail } from '../context/ProductDetailContext';
@@ -22,9 +22,14 @@ const SearchPage = () => {
     const [query, setQuery] = useState(initialQuery);
     const [allProducts, setAllProducts] = useState([]);
     const [allStores, setAllStores] = useState([]);
+    const [matchingProducts, setMatchingProducts] = useState([]);
+    const [matchingStores, setMatchingStores] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
+
     const trimmedQuery = query.trim();
+    const hasMinThreeChars = trimmedQuery.length >= 3;
+    const hasOneOrTwoChars = trimmedQuery.length > 0 && trimmedQuery.length < 3;
 
     // Manage Recent Searches with LocalStorage
     const [pastSearches, setPastSearches] = useState(() => {
@@ -40,65 +45,120 @@ const SearchPage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    const mapProducts = (products = []) =>
+    const mapProducts = useCallback((products = []) =>
         products.map((p) => ({
             ...p,
-            id: p._id,
+            id: p._id || p.id,
             image: p.mainImage || p.image,
             price: p.salePrice || p.price,
             originalPrice: p.price,
             weight: p.weight || '1 unit',
             deliveryTime: '8-15 mins'
-        }));
+        })), []);
 
-    // Fetch quick products and stores
+    // Initial load of popular products & stores
     useEffect(() => {
+        let isCancelled = false;
         const fetchInitialData = async () => {
-            const hasValidLocation =
-                Number.isFinite(currentLocation?.latitude) &&
-                Number.isFinite(currentLocation?.longitude);
-            if (!hasValidLocation) {
-                setAllProducts([]);
-                setAllStores([]);
-                setIsLoading(false);
-                return;
-            }
-            setIsLoading(true);
             try {
                 const [productsRes, storesRes] = await Promise.allSettled([
-                    customerApi.getProducts({
-                        limit: 100,
-                        lat: currentLocation.latitude,
-                        lng: currentLocation.longitude,
-                    }),
+                    customerApi.getProducts({ limit: 50 }),
                     customerApi.getStores(),
                 ]);
 
-                if (productsRes.status === 'fulfilled' && productsRes.value?.data?.success) {
-                    const rawResult = productsRes.value.data.result;
-                    const dbProds = Array.isArray(productsRes.value.data.results)
-                        ? productsRes.value.data.results
-                        : Array.isArray(rawResult?.items)
-                        ? rawResult.items
-                        : Array.isArray(rawResult)
-                        ? rawResult
-                        : [];
-                    if (!trimmedQuery) {
+                if (!isCancelled) {
+                    if (productsRes.status === 'fulfilled' && productsRes.value?.data?.success) {
+                        const rawResult = productsRes.value.data.result;
+                        const dbProds = Array.isArray(productsRes.value.data.results)
+                            ? productsRes.value.data.results
+                            : Array.isArray(rawResult?.items)
+                            ? rawResult.items
+                            : Array.isArray(rawResult)
+                            ? rawResult
+                            : [];
                         setAllProducts(mapProducts(dbProds));
                     }
-                }
 
-                if (storesRes.status === 'fulfilled' && storesRes.value?.data?.success) {
-                    setAllStores(storesRes.value.data.results || []);
+                    if (storesRes.status === 'fulfilled' && storesRes.value?.data?.success) {
+                        setAllStores(storesRes.value.data.results || []);
+                    }
                 }
             } catch (error) {
-                console.error('Error fetching search data:', error);
-            } finally {
-                setIsLoading(false);
+                console.error('Error fetching initial search data:', error);
             }
         };
         fetchInitialData();
-    }, [currentLocation?.latitude, currentLocation?.longitude, trimmedQuery]);
+        return () => {
+            isCancelled = true;
+        };
+    }, [mapProducts]);
+
+    // Live search query when 3+ characters typed
+    useEffect(() => {
+        if (!hasMinThreeChars) {
+            setMatchingProducts([]);
+            setMatchingStores([]);
+            setIsLoading(false);
+            return;
+        }
+
+        let isCancelled = false;
+        setIsLoading(true);
+
+        const timer = setTimeout(async () => {
+            try {
+                const [productsRes, storesRes] = await Promise.allSettled([
+                    customerApi.searchProducts({ search: trimmedQuery, limit: 100 }),
+                    customerApi.getStores({ search: trimmedQuery }),
+                ]);
+
+                if (!isCancelled) {
+                    if (productsRes.status === 'fulfilled' && productsRes.value?.data?.success) {
+                        const rawResult = productsRes.value.data.result;
+                        const dbProds = Array.isArray(productsRes.value.data.results)
+                            ? productsRes.value.data.results
+                            : Array.isArray(rawResult?.items)
+                            ? rawResult.items
+                            : Array.isArray(rawResult)
+                            ? rawResult
+                            : [];
+                        setMatchingProducts(mapProducts(dbProds));
+                    } else {
+                        // Local fallback filter if API had an issue
+                        const localMatches = allProducts.filter(p =>
+                            p.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+                            p.category?.toLowerCase?.().includes(trimmedQuery.toLowerCase())
+                        );
+                        setMatchingProducts(localMatches);
+                    }
+
+                    if (storesRes.status === 'fulfilled' && storesRes.value?.data?.success) {
+                        setMatchingStores(storesRes.value.data.results || []);
+                    } else {
+                        // Local store fallback filter
+                        const localStoreMatches = allStores.filter(s =>
+                            s.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
+                            s.address?.toLowerCase().includes(trimmedQuery.toLowerCase())
+                        );
+                        setMatchingStores(localStoreMatches);
+                    }
+                }
+            } catch (err) {
+                if (!isCancelled) {
+                    console.error('Quick commerce search error:', err);
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsLoading(false);
+                }
+            }
+        }, 150);
+
+        return () => {
+            isCancelled = true;
+            clearTimeout(timer);
+        };
+    }, [trimmedQuery, hasMinThreeChars, mapProducts, allProducts, allStores]);
 
     // Save search term to history
     const saveSearch = (term) => {
@@ -116,83 +176,12 @@ const SearchPage = () => {
         localStorage.setItem('superfast_recent_searches', JSON.stringify(updated));
     };
 
-    // Trigger save on Enter or clicking a result
+    // Trigger save on Enter
     const handleKeyDown = (e) => {
         if (e.key === 'Enter' && trimmedQuery) {
             saveSearch(trimmedQuery);
         }
     };
-
-    useEffect(() => {
-        const hasValidLocation =
-            Number.isFinite(currentLocation?.latitude) &&
-            Number.isFinite(currentLocation?.longitude);
-
-        if (!trimmedQuery || !hasValidLocation) {
-            return undefined;
-        }
-
-        let isCancelled = false;
-
-        const fetchSearchResults = async () => {
-            setIsLoading(true);
-            try {
-                const response = await customerApi.searchProducts({
-                    search: trimmedQuery,
-                    limit: 100,
-                    lat: currentLocation.latitude,
-                    lng: currentLocation.longitude,
-                });
-
-                if (!response?.data?.success || isCancelled) {
-                    return;
-                }
-
-                const rawResult = response.data.result;
-                const dbProds = Array.isArray(response.data.results)
-                    ? response.data.results
-                    : Array.isArray(rawResult?.items)
-                    ? rawResult.items
-                    : Array.isArray(rawResult)
-                    ? rawResult
-                    : [];
-
-                setAllProducts(mapProducts(dbProds));
-            } catch (error) {
-                if (!isCancelled) {
-                    console.error('Error fetching quick search results:', error);
-                    setAllProducts([]);
-                }
-            } finally {
-                if (!isCancelled) {
-                    setIsLoading(false);
-                }
-            }
-        };
-
-        const timeoutId = window.setTimeout(fetchSearchResults, 250);
-
-        return () => {
-            isCancelled = true;
-            window.clearTimeout(timeoutId);
-        };
-    }, [trimmedQuery, currentLocation?.latitude, currentLocation?.longitude]);
-
-    const results = useMemo(() => {
-        if (!trimmedQuery) return [];
-        return allProducts.filter((p) =>
-            p.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-            p.categoryId?.name?.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
-    }, [trimmedQuery, allProducts]);
-
-    const storeResults = useMemo(() => {
-        if (!trimmedQuery) return [];
-        return allStores.filter((store) =>
-            store.name?.toLowerCase().includes(trimmedQuery.toLowerCase()) ||
-            store.address?.toLowerCase().includes(trimmedQuery.toLowerCase())
-        );
-    }, [trimmedQuery, allStores]);
 
     // Lowest Price Section
     const lowestPriceProducts = useMemo(() => {
@@ -228,84 +217,102 @@ const SearchPage = () => {
 
     return (
         <div className="min-h-screen bg-[#F5F7F8] dark:bg-background font-outfit transition-colors duration-500">
-            {/* Search Input */}
+            {/* Search Header */}
             <div className={cn(
-                "sticky top-0 z-50 bg-[#F5F7F8] dark:bg-background shadow-sm border-b dark:border-white/5",
+                "sticky top-0 z-50 bg-[#F5F7F8] dark:bg-background shadow-xs border-b dark:border-white/5",
                 isProductDetailOpen && "hidden md:block"
             )}>
-                <div className="relative px-4 pt-4 pb-4 flex items-center md:justify-center gap-3">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="p-2 -ml-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition-colors flex-shrink-0 md:absolute md:left-4 z-10"
-                    >
-                        <ArrowLeft size={24} className="text-slate-800 dark:text-slate-200" />
-                    </button>
-
-                    <div className="flex-1 relative md:flex-none md:w-[500px] lg:w-[600px]">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                            <Search size={20} className="text-slate-400" />
-                        </div>
-                        <input
-                            autoFocus
-                            type="text"
-                            placeholder="Search stores and items..."
-                            value={query}
-                            onKeyDown={handleKeyDown}
-                            onChange={(e) => setQuery(e.target.value)}
-                            className="w-full h-12 bg-slate-50 dark:bg-card rounded-2xl pl-11 pr-10 border border-slate-100 dark:border-white/5 outline-none text-slate-800 dark:text-slate-200 font-bold placeholder:text-slate-400 placeholder:font-medium focus:ring-2 focus:ring-[var(--primary)]/10 transition-colors"
-                        />
-                        {query && (
-                            <button
-                                onClick={handleClear}
-                                className="absolute right-10 top-1/2 -translate-y-1/2 p-1 bg-slate-200 rounded-full"
-                            >
-                                <X size={14} className="text-slate-600" />
-                            </button>
-                        )}
+                <div className="relative px-4 pt-3.5 pb-3 flex flex-col md:items-center">
+                    <div className="w-full flex items-center md:justify-center gap-3">
                         <button
-                            onClick={handleVoiceSearch}
-                            className={cn(
-                                "absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all",
-                                isListening ? "bg-[var(--primary)] text-white scale-110 animate-pulse" : "text-slate-400 hover:bg-slate-100"
-                            )}
+                            onClick={() => navigate(-1)}
+                            className="p-2 -ml-2 hover:bg-slate-50 dark:hover:bg-white/5 rounded-full transition-colors flex-shrink-0 md:absolute md:left-4 z-10"
                         >
-                            <Mic size={20} className={isListening ? "text-white" : "text-slate-400"} />
+                            <ArrowLeft size={24} className="text-slate-800 dark:text-slate-200" />
                         </button>
+
+                        <div className="flex-1 relative md:flex-none md:w-[500px] lg:w-[600px]">
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2">
+                                <Search size={20} className="text-slate-400" />
+                            </div>
+                            <input
+                                autoFocus
+                                type="text"
+                                placeholder="Search stores and items (e.g. Sejal, Milk, Paneer)..."
+                                value={query}
+                                onKeyDown={handleKeyDown}
+                                onChange={(e) => setQuery(e.target.value)}
+                                className="w-full h-12 bg-white dark:bg-card rounded-2xl pl-11 pr-10 border border-slate-200 dark:border-white/10 outline-none text-slate-800 dark:text-slate-200 font-bold placeholder:text-slate-400 placeholder:font-medium focus:ring-2 focus:ring-[#0c831f]/20 focus:border-[#0c831f] transition-all"
+                            />
+                            {query && (
+                                <button
+                                    onClick={handleClear}
+                                    className="absolute right-10 top-1/2 -translate-y-1/2 p-1 bg-slate-100 hover:bg-slate-200 rounded-full"
+                                >
+                                    <X size={14} className="text-slate-600" />
+                                </button>
+                            )}
+                            <button
+                                onClick={handleVoiceSearch}
+                                className={cn(
+                                    "absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all",
+                                    isListening ? "bg-[#0c831f] text-white scale-110 animate-pulse" : "text-slate-400 hover:bg-slate-100"
+                                )}
+                            >
+                                <Mic size={20} className={isListening ? "text-white" : "text-slate-400"} />
+                            </button>
+                        </div>
                     </div>
+
+                    {/* 3-letter threshold helper badge */}
+                    {hasOneOrTwoChars && (
+                        <div className="mt-2.5 flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-xl border border-emerald-200/80 dark:border-emerald-800/40">
+                            <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                            <span>Type at least <strong>3 letters</strong> to see recommendations for stores & items</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="mx-auto w-full max-w-7xl p-4 md:p-5 space-y-8 pb-28">
-                {/* Search Results List */}
-                {trimmedQuery ? (
+                {/* 3+ letter live recommendations */}
+                {hasMinThreeChars ? (
                     <div className="space-y-8">
+                        {isLoading && (
+                            <div className="flex items-center justify-center gap-2 py-6 text-slate-400 text-sm">
+                                <Loader2 className="w-5 h-5 animate-spin text-[#0c831f]" />
+                                <span>Finding matching stores and items...</span>
+                            </div>
+                        )}
+
                         {/* Stores Section */}
-                        {storeResults.length > 0 && (
+                        {matchingStores.length > 0 && (
                             <section>
                                 <div className="flex justify-between items-center mb-4">
-                                    <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight">
-                                        Stores ({storeResults.length})
+                                    <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
+                                        <Store className="w-5 h-5 text-[#0c831f]" />
+                                        Stores ({matchingStores.length})
                                     </h2>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {storeResults.map((store) => (
+                                    {matchingStores.map((store) => (
                                         <div
                                             key={store._id || store.id}
                                             onClick={() => {
                                                 saveSearch(trimmedQuery);
                                                 navigate(`/quick/stores/${store._id || store.id}`);
                                             }}
-                                            className="flex items-center gap-3 p-3 bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-md cursor-pointer transition-all"
+                                            className="flex items-center gap-3.5 p-3.5 bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-white/5 shadow-xs hover:shadow-md hover:border-[#0c831f]/40 cursor-pointer transition-all group"
                                         >
                                             <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 flex-shrink-0 flex items-center justify-center">
                                                 {store.image ? (
-                                                    <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+                                                    <img src={store.image} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                                 ) : (
                                                     <span className="text-xl font-bold text-slate-400">{store.name?.charAt(0)}</span>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate">
+                                                <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100 truncate group-hover:text-[#0c831f] transition-colors">
                                                     {store.name}
                                                 </h4>
                                                 <p className="text-xs text-slate-400 truncate mt-0.5">
@@ -324,26 +331,27 @@ const SearchPage = () => {
                         {/* Items Section */}
                         <section>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight">
-                                    Items ({results.length})
+                                <h2 className="text-lg font-black text-slate-800 dark:text-slate-200 tracking-tight flex items-center gap-2">
+                                    <ShoppingBag className="w-5 h-5 text-[#0c831f]" />
+                                    Items ({matchingProducts.length})
                                 </h2>
                             </div>
 
-                            {results.length > 0 ? (
+                            {matchingProducts.length > 0 ? (
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-5">
-                                    {results.map((product) => (
-                                        <div key={product.id} onClick={() => saveSearch(trimmedQuery)}>
+                                    {matchingProducts.map((product) => (
+                                        <div key={product.id || product._id} onClick={() => saveSearch(trimmedQuery)}>
                                             <ProductCard product={product} compact={isMobile} />
                                         </div>
                                     ))}
                                 </div>
-                            ) : storeResults.length === 0 && (
+                            ) : !isLoading && matchingStores.length === 0 && (
                                 <div className="py-16 flex flex-col items-center text-center">
                                     <div className="h-20 w-20 bg-slate-50 dark:bg-card rounded-full flex items-center justify-center mb-4">
                                         <Search size={32} className="text-slate-300 dark:text-slate-600" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">No results found</h3>
-                                    <p className="text-slate-400 text-sm">Try different keywords or search for stores or items.</p>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">No results found for "{trimmedQuery}"</h3>
+                                    <p className="text-slate-400 text-sm max-w-sm">Try different keywords or search for stores (like Sejal Grocery) or items (like Milk, Paneer, Bread, Chips).</p>
                                 </div>
                             )}
                         </section>
@@ -358,16 +366,16 @@ const SearchPage = () => {
                                     {pastSearches.map((term) => (
                                         <div
                                             key={term}
-                                            className="flex items-center gap-2 px-3 py-1.5 bg-card dark:bg-background border border-border shadow-sm rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-card dark:bg-background border border-border shadow-xs rounded-full whitespace-nowrap active:scale-95 transition-transform cursor-pointer"
                                             onClick={() => setQuery(term)}
                                         >
-                                            <div className="h-5 w-5 rounded flex items-center justify-center" style={{ backgroundColor: (settings?.primaryColor || 'var(--primary)') + '20' }}>
-                                                <History size={12} style={{ color: settings?.primaryColor || 'var(--primary)' }} />
+                                            <div className="h-5 w-5 rounded flex items-center justify-center bg-[#0c831f]/10">
+                                                <History size={12} className="text-[#0c831f]" />
                                             </div>
                                             <span className="text-sm font-bold text-foreground">{term}</span>
                                             <button
                                                 onClick={(e) => handleRemoveSearch(e, term)}
-                                                className="ml-1 p-0.5 hover:bg-slate-100 rounded-full transition-colors"
+                                                className="ml-1 p-0.5 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
                                             >
                                                 <X size={12} className="text-slate-400 hover:text-red-500" />
                                             </button>
@@ -381,7 +389,7 @@ const SearchPage = () => {
                         <section>
                             <div className="flex justify-between items-center mb-5">
                                 <h2 className="text-xl font-black text-foreground tracking-tight">Lowest Price Ever!</h2>
-                                <button className="flex items-center gap-1 text-sm font-bold" style={{ color: settings?.primaryColor || 'var(--primary)' }}>
+                                <button className="flex items-center gap-1 text-sm font-bold text-[#0c831f]">
                                     See All <ChevronRight size={16} />
                                 </button>
                             </div>
