@@ -8,6 +8,7 @@ import {
     getCurrentRestaurantController,
     updateRestaurantProfileController,
     updateRestaurantAcceptingOrdersController,
+    updateRestaurantTakeawaySettingsController,
     updateCurrentRestaurantDiningSettingsController,
     uploadRestaurantProfileImageController,
     uploadRestaurantMenuImageController,
@@ -97,6 +98,11 @@ router.patch('/availability', authMiddleware, requireRestaurant, async (req, res
     await invalidateCache('restaurant_detail:*');
     next();
 }, updateRestaurantAcceptingOrdersController);
+router.patch('/takeaway-settings', authMiddleware, requireRestaurant, async (req, res, next) => {
+    await invalidateCache('restaurants:*');
+    await invalidateCache('restaurant_detail:*');
+    next();
+}, updateRestaurantTakeawaySettingsController);
 router.patch('/dining-settings', authMiddleware, requireRestaurant, updateCurrentRestaurantDiningSettingsController);
 router.get('/outlet-timings', authMiddleware, requireRestaurant, getCurrentRestaurantOutletTimingsController);
 router.put('/outlet-timings', authMiddleware, requireRestaurant, async (req, res, next) => {

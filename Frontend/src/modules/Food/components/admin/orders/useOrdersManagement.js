@@ -165,9 +165,18 @@ export function useOrdersManagement(orders, statusKey, title) {
     }
 
     if (filters.deliveryType) {
-      result = result.filter(
-        (order) => String(order.deliveryType || "").toLowerCase() === filters.deliveryType.toLowerCase(),
-      )
+      const target = filters.deliveryType.toLowerCase().replace(/[\s-_]/g, "")
+      result = result.filter((order) => {
+        const dType = String(order.deliveryType || "").toLowerCase().replace(/[\s-_]/g, "")
+        const oType = String(order.orderType || "").toLowerCase().replace(/[\s-_]/g, "")
+        if (target.includes("takeaway") || target.includes("take")) {
+          return oType === "takeaway" || dType.includes("take")
+        }
+        if (target.includes("home") || target.includes("delivery")) {
+          return (oType === "food" || oType === "delivery" || !oType) && !dType.includes("take") && oType !== "takeaway"
+        }
+        return dType === target || oType === target
+      })
     }
 
     if (filters.minAmount) {

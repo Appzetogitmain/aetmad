@@ -28,20 +28,25 @@ async function getActiveRestaurantCommissionRules() {
   return restaurantCommissionRulesCache;
 }
 
-export function computeRestaurantCommissionAmount(baseAmount, rule) {
+export function computeRestaurantCommissionAmount(baseAmount, rule, orderType = 'food') {
   const safeBase = Math.max(0, Number(baseAmount) || 0);
   if (!Number.isFinite(safeBase) || safeBase < 0) return 0;
 
-  const commissionType = rule?.defaultCommission?.type || 'percentage';
+  const isTakeaway = orderType === 'takeaway';
+  const commissionConfig = (isTakeaway && rule?.takeawayCommission?.value != null && Number(rule?.takeawayCommission?.value) > 0)
+    ? rule.takeawayCommission
+    : (rule?.defaultCommission || { type: 'percentage', value: 0 });
+
+  const commissionType = commissionConfig?.type || 'percentage';
   const commissionValue = Math.max(
     0,
-    Number(rule?.defaultCommission?.value ?? 0) || 0
+    Number(commissionConfig?.value ?? 0) || 0
   );
 
   let commissionAmount = 0;
   if (commissionType === 'percentage') {
     commissionAmount = safeBase * (commissionValue / 100);
-  } else if (commissionType === 'amount') {
+  } else if (commissionType === 'amount' || commissionType === 'fixed') {
     commissionAmount = commissionValue;
   }
 
@@ -56,6 +61,7 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
   const baseAmount = Number(orderDoc?.pricing?.subtotal ?? 0) || 0;
   const restaurantIdRaw =
     orderDoc?.restaurantId?._id ?? orderDoc?.restaurantId ?? null;
+  const orderType = orderDoc?.orderType || 'food';
 
   if (!restaurantIdRaw) {
     return {
@@ -82,7 +88,7 @@ export async function getRestaurantCommissionSnapshot(orderDoc) {
     };
   }
 
-  return computeRestaurantCommissionAmount(baseAmount, rule);
+  return computeRestaurantCommissionAmount(baseAmount, rule, orderType);
 }
 
 export async function getActiveCommissionRules() {
@@ -137,14 +143,15 @@ export async function getRiderEarning(distanceKm) {
  */
 export async function createInitialTransaction(order) {
     const { commissionAmount } = await getRestaurantCommissionSnapshot(order);
-    const normalizedOrderType = ['food', 'quick', 'mixed'].includes(String(order?.orderType || ''))
+    const normalizedOrderType = ['food', 'quick', 'mixed', 'delivery', 'takeaway'].includes(String(order?.orderType || ''))
         ? String(order.orderType)
         : 'food';
+    const isTakeaway = order?.orderType === 'takeaway';
     const restaurantId = order?.restaurantId || null;
     
     // Split logic
     const totalCustomerPaid = order.pricing?.total || 0;
-    const riderShare = order.riderEarning || 0;
+    const riderShare = isTakeaway ? 0 : (order.riderEarning || 0);
     // Prefer commission already computed & stored on the order (source of truth for this order),
     // fallback to rule snapshot for older orders.
     const restaurantCommissionFromOrder = Number(order.pricing?.restaurantCommission);
@@ -153,7 +160,7 @@ export async function createInitialTransaction(order) {
             ? restaurantCommissionFromOrder
             : (commissionAmount || 0);
     let restaurantNet = (order.pricing?.subtotal || 0) + (order.pricing?.packagingFee || 0) - restaurantCommission;
-    let platformNetProfit = (order.pricing?.platformFee || 0) + (order.pricing?.deliveryFee || 0) + restaurantCommission - riderShare;
+    let platformNetProfit = (order.pricing?.platformFee || 0) + (isTakeaway ? 0 : (order.pricing?.deliveryFee || 0)) + restaurantCommission - riderShare;
 
     const discount = order.pricing?.discount || 0;
     const discountBearer = order.pricing?.discountBearer || 'admin';

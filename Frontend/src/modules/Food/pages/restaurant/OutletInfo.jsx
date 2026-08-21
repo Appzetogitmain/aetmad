@@ -15,6 +15,8 @@ import {
   X,
   Trash2,
   AlertCircle,
+  ShoppingBag,
+  Percent,
 } from "lucide-react"
 import {
   Dialog,
@@ -27,7 +29,7 @@ import {
 import { Button } from "@food/components/ui/button"
 import { Input } from "@food/components/ui/input"
 import { Switch } from "@food/components/ui/switch"
-import { restaurantAPI } from "@food/api"
+import api, { restaurantAPI } from "@food/api"
 import { toast } from "sonner"
 import { ImageSourcePicker } from "@food/components/ImageSourcePicker"
 import { isFlutterBridgeAvailable, convertBase64ToFile } from "@food/utils/imageUploadUtils"
@@ -70,6 +72,9 @@ export default function OutletInfo() {
   const [uploadingCount, setUploadingCount] = useState(0)
   const [showExpiryAlert, setShowExpiryAlert] = useState(false)
   const [daysToExpiry, setDaysToExpiry] = useState(null)
+  const [isTakeawayEnabled, setIsTakeawayEnabled] = useState(true)
+  const [takeawayDiscount, setTakeawayDiscount] = useState(0)
+  const [isUpdatingTakeaway, setIsUpdatingTakeaway] = useState(false)
   
   const profileImageInputRef = useRef(null)
   const menuImageInputRef = useRef(null)
@@ -126,6 +131,8 @@ export default function OutletInfo() {
           // Set restaurant name
           setRestaurantName(data.restaurantName || data.name || "")
           setIsPureVeg(data.pureVegRestaurant || false)
+          setIsTakeawayEnabled(data.isTakeawayEnabled !== false)
+          setTakeawayDiscount(Number(data.takeawayDiscount || 0))
           
           // Set restaurant ID
           setRestaurantId(data.restaurantId || data.id || "")
@@ -500,6 +507,38 @@ export default function OutletInfo() {
     }
   }
 
+  const handleTakeawayToggle = async (checked) => {
+    setIsTakeawayEnabled(checked)
+    try {
+      setIsUpdatingTakeaway(true)
+      await api.patch('/food/restaurant/takeaway-settings', {
+        isTakeawayEnabled: checked,
+        takeawayDiscount: Number(takeawayDiscount) || 0
+      })
+      toast.success(checked ? "Takeaway orders enabled" : "Takeaway orders disabled")
+    } catch (err) {
+      setIsTakeawayEnabled(!checked)
+      toast.error("Failed to update takeaway setting")
+    } finally {
+      setIsUpdatingTakeaway(false)
+    }
+  }
+
+  const handleTakeawayDiscountSave = async () => {
+    try {
+      setIsUpdatingTakeaway(true)
+      await api.patch('/food/restaurant/takeaway-settings', {
+        isTakeawayEnabled,
+        takeawayDiscount: Number(takeawayDiscount) || 0
+      })
+      toast.success("Takeaway discount updated successfully")
+    } catch (err) {
+      toast.error("Failed to update takeaway discount")
+    } finally {
+      setIsUpdatingTakeaway(false)
+    }
+  }
+
   return (
     <>
       <div className="min-h-screen bg-white overflow-x-hidden">
@@ -808,6 +847,66 @@ export default function OutletInfo() {
                   </div>
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* Takeaway / Self-Pickup Settings */}
+          <section className="space-y-3">
+            <div className="flex items-center gap-2 ml-1">
+              <ShoppingBag className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Takeaway / Self-Pickup</h3>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-amber-50/20">
+                <div className="flex-1 min-w-0 pr-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <ShoppingBag className="w-4 h-4 text-amber-500" />
+                    <p className="text-sm font-bold text-gray-800">Accept Takeaway Orders</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Allow customers to place self-pickup orders and collect directly from your counter.
+                  </p>
+                </div>
+                <Switch
+                  checked={isTakeawayEnabled}
+                  onCheckedChange={handleTakeawayToggle}
+                  disabled={isUpdatingTakeaway}
+                  className="data-[state=checked]:bg-amber-500"
+                />
+              </div>
+
+              <div className="p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium mb-0.5">Takeaway Discount (%)</p>
+                    <p className="text-xs text-gray-500">
+                      Offer special discount for customers choosing counter pickup
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleTakeawayDiscountSave}
+                    disabled={isUpdatingTakeaway}
+                    className="bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs h-8 px-3 rounded-lg"
+                  >
+                    Save
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 pt-1 max-w-xs">
+                  <div className="relative flex-1">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={takeawayDiscount}
+                      onChange={(e) => setTakeawayDiscount(e.target.value)}
+                      placeholder="0"
+                      className="pr-8 text-sm font-bold"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">%</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 

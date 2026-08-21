@@ -32,6 +32,15 @@ export const detectZonePublicController = async (req, res, next) => {
         }
 
         const zones = await FoodZone.find({ isActive: true }).lean();
+        if (!zones || zones.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'Out of service',
+                data: { status: 'OUT_OF_SERVICE', zoneId: null, zone: null }
+            });
+        }
+
+        // 1. Try polygon match
         for (const zone of zones) {
             const coords = Array.isArray(zone.coordinates) ? zone.coordinates : [];
             if (coords.length < 3) continue;
@@ -42,6 +51,18 @@ export const detectZonePublicController = async (req, res, next) => {
                     data: { status: 'IN_SERVICE', zoneId: zone._id, zone }
                 });
             }
+        }
+
+        // 2. Fallback: If zones exist without explicit polygon boundaries (e.g., city-wide zones or development),
+        // fallback to the active zone so users can discover restaurants.
+        const zonesWithoutPolygons = zones.filter(z => !Array.isArray(z.coordinates) || z.coordinates.length < 3);
+        if (zonesWithoutPolygons.length > 0) {
+            const fallbackZone = zonesWithoutPolygons[0];
+            return res.status(200).json({
+                success: true,
+                message: 'Zone detected (city fallback)',
+                data: { status: 'IN_SERVICE', zoneId: fallbackZone._id, zone: fallbackZone }
+            });
         }
 
         return res.status(200).json({

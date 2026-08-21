@@ -94,7 +94,8 @@ const transformOrderForList = (order) => ({
   mongoId: order._id,
   status: order.status || "pending",
   customerName: order.userId?.name || order.customerName || "Customer",
-  type: "Home Delivery",
+  type: order.orderType === 'takeaway' ? 'Takeaway' : (order.type || "Home Delivery"),
+  orderType: order.orderType || 'delivery',
   tableOrToken: null,
   timePlaced: new Date(getAllOrdersTimestamp(order)).toLocaleDateString(
     "en-US",
@@ -145,7 +146,8 @@ function CompletedOrders({ onSelectOrder, refreshToken = 0 , searchTerm = "" }) 
             mongoId: order._id,
             status: order.status || "delivered",
             customerName: order.userId?.name || order.customerName || "Customer",
-            type: "Home Delivery",
+            type: order.orderType === "takeaway" || order.deliveryFleet === "takeaway" ? "Takeaway" : (order.deliveryFleet === "standard" ? "Home Delivery" : "Express Delivery"),
+            orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
             tableOrToken: null,
             timePlaced: new Date(order.createdAt).toLocaleTimeString("en-US", {
               hour: "2-digit",
@@ -353,7 +355,8 @@ function CancelledOrders({ onSelectOrder, refreshToken = 0 , searchTerm = "" }) 
             mongoId: order._id,
             status: order.status || "cancelled",
             customerName: order.userId?.name || order.customerName || "Customer",
-            type: "Home Delivery",
+            type: order.orderType === "takeaway" || order.deliveryFleet === "takeaway" ? "Takeaway" : (order.deliveryFleet === "standard" ? "Home Delivery" : "Express Delivery"),
+            orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
             tableOrToken: null,
             timePlaced: new Date(order.createdAt).toLocaleTimeString("en-US", {
               hour: "2-digit",
@@ -1783,6 +1786,7 @@ function OrderCard({
   status,
   customerName,
   type,
+  orderType,
   tableOrToken,
   timePlaced,
   eta,
@@ -1795,8 +1799,11 @@ function OrderCard({
   onSelect,
   onCancel,
   onMarkReady,
+  onMarkCompleted,
   isMarkingReady = false,
+  isMarkingCompleted = false,
 }) {
+  const isTakeaway = orderType === 'takeaway' || type === 'Takeaway';
   const normalizedStatus = String(status || "").toLowerCase();
   const isReady = normalizedStatus === "ready";
   const isPreparing = normalizedStatus === "preparing";
@@ -1826,6 +1833,7 @@ function OrderCard({
             status,
             customerName,
             type,
+            orderType,
             tableOrToken,
             timePlaced,
             eta,
@@ -1856,9 +1864,16 @@ function OrderCard({
           {/* Top row */}
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-black leading-tight">
-                Order #{orderId}
-              </p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-semibold text-black leading-tight">
+                  Order #{orderId}
+                </p>
+                {isTakeaway && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 uppercase tracking-tight">
+                    🛍️ Takeaway
+                  </span>
+                )}
+              </div>
               <p className="text-[11px] text-gray-500 mt-1">{customerName}</p>
             </div>
 
@@ -1894,8 +1909,8 @@ function OrderCard({
                 {type}
                 {tableOrToken ? ` • ${tableOrToken}` : ""}
               </p>
-              {/* Delivery Assignment Status - Only show for active orders */}
-              {(isPreparing || isReady || normalizedStatus === "confirmed") && (
+              {/* Delivery Assignment Status - Only show for delivery orders */}
+              {!isTakeaway && (isPreparing || isReady || normalizedStatus === "confirmed") && (
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
@@ -1930,7 +1945,19 @@ function OrderCard({
                   }}
                   disabled={isMarkingReady}
                   className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-[#49AB14] text-[#49AB14] bg-[#49AB14]/5 hover:bg-[#49AB14]/10 disabled:opacity-60 disabled:cursor-not-allowed transition-colors">
-                  {isMarkingReady ? "Marking..." : "Mark Ready"}
+                  {isMarkingReady ? "Marking..." : isTakeaway ? "Ready for Pickup" : "Mark Ready"}
+                </button>
+              )}
+              {isReady && isTakeaway && onMarkCompleted && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMarkCompleted({ orderId, mongoId, customerName });
+                  }}
+                  disabled={isMarkingCompleted}
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-semibold border border-emerald-600 text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-xs">
+                  {isMarkingCompleted ? "Completing..." : "Mark Handed Over"}
                 </button>
               )}
               {/* Hide ETA for ready orders */}
@@ -1991,9 +2018,12 @@ function PreparingOrders({
               status: order.status || "preparing",
               customerName: order.userId?.name || "Customer",
               type:
-                order.deliveryFleet === "standard"
+                order.orderType === "takeaway" || order.deliveryFleet === "takeaway"
+                  ? "Takeaway"
+                  : order.deliveryFleet === "standard"
                   ? "Home Delivery"
                   : "Express Delivery",
+              orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
               tableOrToken: null,
               timePlaced: new Date(order.createdAt).toLocaleTimeString(
                 "en-US",
@@ -2278,6 +2308,21 @@ function PreparingOrders({
 function ReadyOrders({ onSelectOrder, refreshToken = 0, searchTerm = "" }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [markingCompletedId, setMarkingCompletedId] = useState(null);
+
+  const handleMarkCompleted = async ({ orderId, mongoId }) => {
+    const id = mongoId || orderId;
+    if (!id || markingCompletedId) return;
+    try {
+      setMarkingCompletedId(id);
+      await restaurantAPI.markOrderCompleted(id);
+      setOrders((prev) => prev.filter((o) => (o.mongoId || o.orderId) !== id));
+    } catch (err) {
+      console.error("Failed to mark order completed:", err);
+    } finally {
+      setMarkingCompletedId(null);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -2301,9 +2346,12 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0, searchTerm = "" }) {
             status: order.status || "ready",
             customerName: order.userId?.name || "Customer",
             type:
-              order.deliveryFleet === "standard"
+              order.orderType === "takeaway" || order.deliveryFleet === "takeaway"
+                ? "Takeaway"
+                : order.deliveryFleet === "standard"
                 ? "Home Delivery"
                 : "Express Delivery",
+            orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
             tableOrToken: null,
             timePlaced: new Date(order.createdAt).toLocaleTimeString("en-US", {
               hour: "2-digit",
@@ -2386,6 +2434,8 @@ function ReadyOrders({ onSelectOrder, refreshToken = 0, searchTerm = "" }) {
               key={order.orderId || order.mongoId}
               {...order}
               onSelect={onSelectOrder}
+              onMarkCompleted={handleMarkCompleted}
+              isMarkingCompleted={markingCompletedId === (order.mongoId || order.orderId)}
             />
           ))}
         </div>
@@ -2421,9 +2471,12 @@ const OutForDeliveryOrders = ({ onSelectOrder, refreshToken = 0 , searchTerm = "
             status: order.status || "out_for_delivery",
             customerName: order.userId?.name || "Customer",
             type:
-              order.deliveryFleet === "standard"
+              order.orderType === "takeaway" || order.deliveryFleet === "takeaway"
+                ? "Takeaway"
+                : order.deliveryFleet === "standard"
                 ? "Home Delivery"
                 : "Express Delivery",
+            orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
             tableOrToken: null,
             timePlaced: new Date(order.createdAt).toLocaleTimeString("en-US", {
               hour: "2-digit",
@@ -2537,7 +2590,8 @@ function ScheduledOrders({ onSelectOrder, refreshToken = 0 , searchTerm = "" }) 
             mongoId: order._id,
             status: order.status || "scheduled",
             customerName: order.userId?.name || "Customer",
-            type: order.deliveryFleet === "standard" ? "Home Delivery" : "Express Delivery",
+            type: order.orderType === "takeaway" || order.deliveryFleet === "takeaway" ? "Takeaway" : (order.deliveryFleet === "standard" ? "Home Delivery" : "Express Delivery"),
+            orderType: order.orderType || (order.deliveryFleet === "takeaway" ? "takeaway" : "delivery"),
             tableOrToken: null,
             timePlaced: new Date(order.createdAt).toLocaleTimeString("en-US", {
               hour: "2-digit",

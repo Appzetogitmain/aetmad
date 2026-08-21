@@ -174,10 +174,10 @@ const paymentSchema = new mongoose.Schema(
 
 const dispatchSchema = new mongoose.Schema(
     {
-        modeAtCreation: { type: String, enum: ['auto', 'manual'], default: 'manual' },
+        modeAtCreation: { type: String, enum: ['auto', 'manual', 'not_applicable'], default: 'manual' },
         status: {
             type: String,
-            enum: ['unassigned', 'assigned', 'accepted', 'rejected', 'cancelled'],
+            enum: ['unassigned', 'assigned', 'accepted', 'rejected', 'cancelled', 'not_applicable'],
             default: 'unassigned'
         },
         deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodDeliveryPartner', default: null },
@@ -203,7 +203,8 @@ const deliveryStateSchema = new mongoose.Schema(
                 'en_route_to_delivery',
                 'at_drop',
                 'delivered',
-                'completed'
+                'completed',
+                'not_applicable'
             ],
             default: 'en_route_to_pickup'
         },
@@ -275,8 +276,8 @@ const orderSchema = new mongoose.Schema(
     {
         orderType: {
             type: String,
-            enum: ['food', 'quick','mixed'],
-            default: 'food',
+            enum: ['food', 'quick', 'mixed', 'delivery', 'takeaway'],
+            default: 'delivery',
             index: true
         },
         orderId: {
@@ -300,7 +301,7 @@ const orderSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'FoodRestaurant',
             required() {
-                return this.orderType === 'food';
+                return this.orderType === 'food' || this.orderType === 'delivery' || this.orderType === 'takeaway';
             },
             default: null
         },
@@ -326,7 +327,8 @@ const orderSchema = new mongoose.Schema(
         deliveryAddress: {
             type: deliveryAddressSchema,
             required() {
-                return this.orderType === 'food' || this.orderType === 'quick' || this.orderType === 'mixed';
+                if (this.orderType === 'takeaway') return false;
+                return this.orderType === 'delivery' || this.orderType === 'food' || this.orderType === 'quick' || this.orderType === 'mixed';
             }
         },
         pricing: {
@@ -352,12 +354,14 @@ const orderSchema = new mongoose.Schema(
                 'ready_for_pickup',
                 'picked_up',
                 'delivered',
+                'completed',
                 'cancelled_by_user',
                 'cancelled_by_restaurant',
                 'cancelled_by_admin'
             ],
             default: 'created'
         },
+        pickupTime: { type: Date, default: null },
         dispatch: {
             type: dispatchSchema,
             default: () => ({})
@@ -434,7 +438,7 @@ orderSchema.index({ 'payment.status': 1, createdAt: -1 });
 orderSchema.index({ 'payment.method': 1, createdAt: -1 });
 
 orderSchema.pre('save', async function (next) {
-    if (this.isModified('orderStatus') && ['delivered', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin'].includes(this.orderStatus)) {
+    if (this.isModified('orderStatus') && ['delivered', 'completed', 'cancelled_by_user', 'cancelled_by_restaurant', 'cancelled_by_admin'].includes(this.orderStatus)) {
         if (this.reassignmentStatus === 'pending') {
             const pendingDriverId = this.pendingDriverId;
             this.reassignmentStatus = 'none';

@@ -17,6 +17,14 @@ const restaurantCommissionSchema = new mongoose.Schema(
             },
             value: { type: Number, default: 0 }
         },
+        takeawayCommission: {
+            type: {
+                type: String,
+                enum: ['percentage', 'amount', 'fixed'],
+                default: 'percentage'
+            },
+            value: { type: Number, default: 0 }
+        },
         notes: { type: String, trim: true, default: '' },
         status: { type: Boolean, default: true, index: true }
     },

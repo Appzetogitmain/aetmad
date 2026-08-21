@@ -1217,7 +1217,7 @@ export async function getTaxReportDetail(restaurantId, query = {}) {
 }
 
 // ----- Customers / Users (admin) -----
-const FOOD_CUSTOMER_ORDER_TYPES = ['food', 'mixed'];
+const FOOD_CUSTOMER_ORDER_TYPES = ['food', 'mixed', 'delivery', 'takeaway'];
 
 async function getEligibleFoodCustomerIds() {
     const ids = await FoodOrder.distinct('userId', {

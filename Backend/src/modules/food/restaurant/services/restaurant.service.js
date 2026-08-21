@@ -202,6 +202,8 @@ const toRestaurantProfile = (doc) => {
         diningPrimaryCategoryId: doc.diningPrimaryCategoryId || null,
         pendingDiningRequest: doc.pendingDiningRequest || null,
         isAcceptingOrders: doc.isAcceptingOrders !== false,
+        isTakeawayEnabled: doc.isTakeawayEnabled !== false,
+        takeawayDiscount: Number(doc.takeawayDiscount || 0),
         status: doc.status || null,
         createdAt: doc.createdAt,
         updatedAt: doc.updatedAt,
@@ -253,9 +255,19 @@ export const buildZoneRestaurantFilter = async (zoneIdRaw) => {
         { zoneId: trimmedZoneId }
     ];
     const zoneDoc = await FoodZone.findOne({ _id: trimmedZoneId, isActive: true }).lean();
-    const polygon = zoneToPolygon(zoneDoc);
-    if (polygon) {
-        zoneClauses.push({ location: { $geoWithin: { $geometry: polygon } } });
+    if (zoneDoc) {
+        const polygon = zoneToPolygon(zoneDoc);
+        if (polygon) {
+            zoneClauses.push({ location: { $geoWithin: { $geometry: polygon } } });
+        }
+        const zoneName = String(zoneDoc.name || zoneDoc.zoneName || zoneDoc.serviceLocation || '').trim();
+        if (zoneName) {
+            const rx = new RegExp(`^${escapeRegex(zoneName)}$`, 'i');
+            zoneClauses.push({ 'location.city': rx });
+            zoneClauses.push({ 'location.area': rx });
+            zoneClauses.push({ city: rx });
+            zoneClauses.push({ area: rx });
+        }
     }
 
     return { $or: zoneClauses };
@@ -531,6 +543,8 @@ export const getCurrentRestaurantProfile = async (restaurantId) => {
                 'estimatedDeliveryTimeMinutes',
                 'diningSettings',
                 'isAcceptingOrders',
+                'isTakeawayEnabled',
+                'takeawayDiscount',
                 'status',
                 'customOrdersEnabled',
                 'customOrdersRequestStatus',
@@ -603,11 +617,33 @@ export const updateRestaurantAcceptingOrders = async (restaurantId, isAcceptingO
                 'openDays',
                 'diningSettings',
                 'isAcceptingOrders',
+                'isTakeawayEnabled',
+                'takeawayDiscount',
                 'status',
                 'createdAt',
                 'updatedAt'
             ].join(' ')
         }
+    ).lean();
+    return toRestaurantProfile(doc);
+};
+
+export const updateRestaurantTakeawaySettings = async (restaurantId, { isTakeawayEnabled, takeawayDiscount }) => {
+    if (!restaurantId) {
+        throw new ValidationError('Invalid restaurant id');
+    }
+    const update = {};
+    if (isTakeawayEnabled !== undefined) {
+        update.isTakeawayEnabled = Boolean(isTakeawayEnabled);
+    }
+    if (takeawayDiscount !== undefined) {
+        const disc = Number(takeawayDiscount);
+        update.takeawayDiscount = Number.isFinite(disc) && disc >= 0 ? Math.min(100, disc) : 0;
+    }
+    const doc = await FoodRestaurant.findByIdAndUpdate(
+        restaurantId,
+        { $set: update },
+        { new: true }
     ).lean();
     return toRestaurantProfile(doc);
 };
@@ -634,6 +670,15 @@ export const updateRestaurantProfile = async (restaurantId, body = {}) => {
     }
 
     const update = {};
+
+    if (body.isTakeawayEnabled !== undefined) {
+        update.isTakeawayEnabled = Boolean(body.isTakeawayEnabled);
+    }
+
+    if (body.takeawayDiscount !== undefined) {
+        const disc = Number(body.takeawayDiscount);
+        update.takeawayDiscount = Number.isFinite(disc) && disc >= 0 ? Math.min(100, disc) : 0;
+    }
 
     if (body.businessType !== undefined) {
         const businessType = String(body.businessType || '').trim();
@@ -1446,6 +1491,9 @@ export const listApprovedRestaurants = async (query = {}) => {
         // cuisines is an array of strings.
         filter.cuisines = { $in: [new RegExp(escapeRegex(cuisine), 'i')] };
     }
+    if (query.takeawayOnly === 'true') {
+        filter.isTakeawayEnabled = { $ne: false };
+    }
     if (query.hasOffers === 'true') {
         filter.offer = { $exists: true, $ne: null, $ne: '' };
     }
@@ -1501,6 +1549,8 @@ export const listApprovedRestaurants = async (query = {}) => {
         rating: 1,
         totalRatings: 1,
         isAcceptingOrders: 1,
+        isTakeawayEnabled: 1,
+        takeawayDiscount: 1,
         pureVegRestaurant: 1,
         openingTime: 1,
         closingTime: 1,

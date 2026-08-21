@@ -20,7 +20,8 @@ import {
   CircleSlash,
   Loader2,
   Star,
-  Sparkles
+  Sparkles,
+  ShoppingBag
 } from "lucide-react"
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -1995,6 +1996,8 @@ export default function OrderTracking() {
     )
   }
 
+  const isTakeawayOrder = order?.orderType === 'takeaway' || order?.type === 'takeaway'
+
   const statusConfig = {
     scheduled: {
       title: "Order Scheduled",
@@ -2003,56 +2006,56 @@ export default function OrderTracking() {
       iconType: 'food'
     },
     placed: {
-      title: "Order Placed",
-      subtitle: isQuickOrder ? "Waiting for store to accept" : "Waiting for restaurant to accept",
-      color: "bg-green-600",
+      title: isTakeawayOrder ? "Takeaway Order Placed" : "Order Placed",
+      subtitle: isTakeawayOrder ? "Waiting for restaurant to accept your pickup order" : isQuickOrder ? "Waiting for store to accept" : "Waiting for restaurant to accept",
+      color: isTakeawayOrder ? "bg-amber-600" : "bg-green-600",
       iconType: 'food'
     },
     confirmed: {
-      title: "Order Confirmed",
-      subtitle: isQuickOrder ? "Store has accepted your order" : "Restaurant has accepted your order",
-      color: "bg-green-600",
+      title: isTakeawayOrder ? "Takeaway Order Accepted" : "Order Confirmed",
+      subtitle: isTakeawayOrder ? "Restaurant accepted your order and will start cooking soon" : isQuickOrder ? "Store has accepted your order" : "Restaurant has accepted your order",
+      color: isTakeawayOrder ? "bg-amber-600" : "bg-green-600",
       iconType: 'food'
     },
     preparing: {
-      title: isQuickOrder ? "Items are being packed" : "Food is being prepared",
-      subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : (isQuickOrder ? "Packing your items" : "Cooking your meal"),
-      color: "bg-green-600",
+      title: isTakeawayOrder ? "Food is Being Prepared" : isQuickOrder ? "Items are being packed" : "Food is being prepared",
+      subtitle: isTakeawayOrder ? `Cooking your meal • Pickup in ~${estimatedTime || 20} mins` : typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : (isQuickOrder ? "Packing your items" : "Cooking your meal"),
+      color: isTakeawayOrder ? "bg-amber-600" : "bg-green-600",
       iconType: 'food'
     },
     assigned: {
-      title: "Rider is arriving",
-      subtitle: isQuickOrder ? "A delivery partner is arriving at the store" : "A delivery partner is arriving at the restaurant",
-      color: "bg-green-600",
-      iconType: 'rider'
+      title: isTakeawayOrder ? "Preparing Order" : "Rider is arriving",
+      subtitle: isTakeawayOrder ? "Food is in the kitchen" : isQuickOrder ? "A delivery partner is arriving at the store" : "A delivery partner is arriving at the restaurant",
+      color: isTakeawayOrder ? "bg-amber-600" : "bg-green-600",
+      iconType: isTakeawayOrder ? 'food' : 'rider'
     },
     at_pickup: {
-      title: isQuickOrder ? "Rider at store" : "Rider at restaurant",
-      subtitle: "Rider is waiting for your order",
-      color: "bg-green-600",
-      iconType: 'rider'
+      title: isTakeawayOrder ? "Almost Ready" : isQuickOrder ? "Rider at store" : "Rider at restaurant",
+      subtitle: isTakeawayOrder ? "Packing your food for counter pickup" : "Rider is waiting for your order",
+      color: isTakeawayOrder ? "bg-amber-600" : "bg-green-600",
+      iconType: isTakeawayOrder ? 'food' : 'rider'
     },
     ready: {
-      title: "Handover in progress",
-      subtitle: "Rider is picking up your order",
-      color: "bg-green-600",
-      iconType: 'rider'
+      title: isTakeawayOrder ? "Ready for Pickup! 🛍️" : "Handover in progress",
+      subtitle: isTakeawayOrder ? "Your food is ready at the counter. Please visit the restaurant to collect!" : "Rider is picking up your order",
+      color: isTakeawayOrder ? "bg-emerald-600" : "bg-green-600",
+      iconType: isTakeawayOrder ? 'delivered' : 'rider'
     },
     on_way: {
-      title: "Out for delivery",
-      subtitle: typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Rider is out for delivery",
-      color: "bg-green-600",
-      iconType: 'rider'
+      title: isTakeawayOrder ? "Ready for Pickup! 🛍️" : "Out for delivery",
+      subtitle: isTakeawayOrder ? "Your food is ready at the counter. Please collect!" : typeof estimatedTime === 'number' ? `Arriving in ${estimatedTime} mins` : "Rider is out for delivery",
+      color: isTakeawayOrder ? "bg-emerald-600" : "bg-green-600",
+      iconType: isTakeawayOrder ? 'delivered' : 'rider'
     },
     at_drop: {
-      title: "Arrived at location",
-      subtitle: "Please come to the door",
-      color: "bg-green-600",
-      iconType: 'rider'
+      title: isTakeawayOrder ? "Ready for Pickup! 🛍️" : "Arrived at location",
+      subtitle: isTakeawayOrder ? "Your food is ready at the counter." : "Please come to the door",
+      color: isTakeawayOrder ? "bg-emerald-600" : "bg-green-600",
+      iconType: isTakeawayOrder ? 'delivered' : 'rider'
     },
     delivered: {
-      title: "Order delivered",
-      subtitle: isQuickOrder ? "Enjoy your purchase!" : "Enjoy your meal!",
+      title: isTakeawayOrder ? "Takeaway Order Completed" : "Order delivered",
+      subtitle: isTakeawayOrder ? "Order handed over successfully. Enjoy your meal!" : isQuickOrder ? "Enjoy your purchase!" : "Enjoy your meal!",
       color: "bg-green-600",
       iconType: 'delivered'
     },
@@ -2215,91 +2218,197 @@ export default function OrderTracking() {
       )}
       </motion.div>
 
-      {/* Map Section */}
-      {!isDeliveredOrder && orderStatus !== 'cancelled' && (
-        <>
-          <DeliveryMap
-            orderId={orderId}
-            order={order}
-            isVisible={order !== null}
-            fallbackCustomerCoords={fallbackCustomerCoords}
-            userLiveCoords={userLiveCoords}
-            userLocationAccuracy={userLiveLocation?.accuracy ?? null}
-            onEtaUpdate={handleEtaUpdate}
-          />
-          {!hasActiveDeliveryTracking && (
-            <motion.div
-              className="mx-4 mt-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 via-white to-lime-50 dark:from-emerald-900/20 dark:via-neutral-900 dark:to-lime-900/20 p-5 shadow-sm"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-500">
-                    Live tracking
-                  </p>
-                  <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
-                    {orderStatus === 'scheduled' ? 'Order Scheduled' : 'Waiting for delivery partner assignment'}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    {orderStatus === 'scheduled' 
-                      ? `The ${isQuickOrder ? 'store' : 'restaurant'} will receive your order 15 minutes before the scheduled time.` 
-                      : 'The route map is ready. Live rider movement will appear here as soon as a rider accepts the trip.'}
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                  {currentStatus.title}
-                </div>
+      {/* Map Section vs Takeaway Pickup Counter Card */}
+      {isTakeawayOrder ? (
+        <div className="mx-4 mt-4 rounded-3xl border border-amber-200 dark:border-amber-900/50 bg-gradient-to-br from-amber-50 via-white to-orange-50 dark:from-amber-950/30 dark:via-neutral-900 dark:to-slate-900 p-5 shadow-sm space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold uppercase tracking-wider">
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Self-Pickup / Takeaway Order</span>
               </div>
+              <h3 className="mt-2 text-xl font-extrabold text-slate-900 dark:text-white">
+                {order?.restaurant}
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-md">
+                {order?.restaurantAddress || "Restaurant counter location"}
+              </p>
+            </div>
 
-              <div className="mt-5 rounded-2xl border border-white/70 dark:border-neutral-700/50 bg-white/90 dark:bg-neutral-800/90 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex flex-col items-center pt-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-[var(--primary-theme)] dark:text-red-400">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div className="my-2 h-10 w-px border-l-2 border-dashed border-emerald-200 dark:border-emerald-800" />
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                      <HomeIcon className="h-5 w-5" />
-                    </div>
-                  </div>
-                  <div className="min-w-0 flex-1 space-y-5">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
-                        {previewPickupLabel}
-                      </p>
-                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                        {previewPickupSource?.name || order?.restaurant || 'Pickup location'}
-                      </p>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {previewPickupAddress}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
-                        Delivery address
-                      </p>
-                      <p className="mt-1 font-semibold text-gray-900 dark:text-white">
-                        Customer location
-                      </p>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {previewDropAddress}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+            <div className={`px-3 py-1.5 rounded-xl text-xs font-bold ${
+              orderStatus === 'ready'
+                ? 'bg-emerald-500 text-white animate-pulse shadow-md shadow-emerald-500/30'
+                : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+            }`}>
+              {orderStatus === 'ready' ? '⚡ READY AT COUNTER' : currentStatus.title}
+            </div>
+          </div>
+
+          {/* Action Buttons: Directions & Call */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-200/50 dark:border-neutral-800">
+            {order?.restaurantLocation?.coordinates && (
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${order.restaurantLocation.coordinates[1]},${order.restaurantLocation.coordinates[0]}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-bold transition-all shadow-sm"
+              >
+                <MapPin className="w-4 h-4" />
+                <span>Get Directions on Google Maps</span>
+              </a>
+            )}
+            {order?.restaurantPhone && (
+              <a
+                href={`tel:${order.restaurantPhone}`}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 dark:hover:bg-neutral-700 text-slate-800 dark:text-white text-xs font-bold transition-all"
+              >
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span>Call Restaurant</span>
+              </a>
+            )}
+          </div>
+
+          {/* Special Pickup Counter Alert when ready */}
+          {orderStatus === 'ready' && (
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="p-4 rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 flex items-start gap-3"
+            >
+              <Sparkles className="w-6 h-6 text-yellow-300 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-extrabold text-sm">Your Order Is Ready for Handover!</h4>
+                <p className="text-xs text-emerald-50 mt-0.5">
+                  Please proceed to the restaurant pickup counter and mention <strong>Order #{order?.orderId || orderId}</strong>.
+                </p>
               </div>
             </motion.div>
           )}
-        </>
-      )}
 
+          {/* 5-Step Takeaway Visual Progress Stepper */}
+          <div className="pt-3 border-t border-amber-200/50 dark:border-neutral-800">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+              Pickup Progress
+            </p>
+            <div className="grid grid-cols-5 gap-1 text-center">
+              {[
+                { id: 'placed', label: 'Placed' },
+                { id: 'confirmed', label: 'Accepted' },
+                { id: 'preparing', label: 'Preparing' },
+                { id: 'ready', label: 'Ready' },
+                { id: 'delivered', label: 'Completed' }
+              ].map((step, idx) => {
+                const stepOrder = ['placed', 'confirmed', 'preparing', 'ready', 'delivered']
+                const currentIdx = stepOrder.indexOf(orderStatus)
+                const isPast = currentIdx >= idx
+                const isCurrent = orderStatus === step.id
+
+                return (
+                  <div key={step.id} className="flex flex-col items-center">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                      isCurrent
+                        ? 'bg-amber-500 text-white ring-4 ring-amber-500/20'
+                        : isPast
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-slate-200 dark:bg-neutral-800 text-slate-400'
+                    }`}>
+                      {isPast && !isCurrent ? <Check className="w-3.5 h-3.5" /> : idx + 1}
+                    </div>
+                    <span className={`text-[10px] mt-1.5 font-semibold leading-tight ${
+                      isCurrent ? 'text-amber-600 dark:text-amber-400 font-bold' : isPast ? 'text-slate-800 dark:text-slate-200' : 'text-slate-400'
+                    }`}>
+                      {step.label}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : (
+        !isDeliveredOrder && orderStatus !== 'cancelled' && (
+          <>
+            <DeliveryMap
+              orderId={orderId}
+              order={order}
+              isVisible={order !== null}
+              fallbackCustomerCoords={fallbackCustomerCoords}
+              userLiveCoords={userLiveCoords}
+              userLocationAccuracy={userLiveLocation?.accuracy ?? null}
+              onEtaUpdate={handleEtaUpdate}
+            />
+            {!hasActiveDeliveryTracking && (
+              <motion.div
+                className="mx-4 mt-4 rounded-3xl border border-emerald-100 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 via-white to-lime-50 dark:from-emerald-900/20 dark:via-neutral-900 dark:to-lime-900/20 p-5 shadow-sm"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-500">
+                      Live tracking
+                    </p>
+                    <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
+                      {orderStatus === 'scheduled' ? 'Order Scheduled' : 'Waiting for delivery partner assignment'}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {orderStatus === 'scheduled' 
+                        ? `The ${isQuickOrder ? 'store' : 'restaurant'} will receive your order 15 minutes before the scheduled time.` 
+                        : 'The route map is ready. Live rider movement will appear here as soon as a rider accepts the trip.'}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 px-3 py-2 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    {currentStatus.title}
+                  </div>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-white/70 dark:border-neutral-700/50 bg-white/90 dark:bg-neutral-800/90 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex flex-col items-center pt-1">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 text-[var(--primary-theme)] dark:text-red-400">
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div className="my-2 h-10 w-px border-l-2 border-dashed border-emerald-200 dark:border-emerald-800" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+                        <HomeIcon className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-5">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                          {previewPickupLabel}
+                        </p>
+                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                          {previewPickupSource?.name || order?.restaurant || 'Pickup location'}
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          {previewPickupAddress}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">
+                          Delivery address
+                        </p>
+                        <p className="mt-1 font-semibold text-gray-900 dark:text-white">
+                          Customer location
+                        </p>
+                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                          {previewDropAddress}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </>
+        )
+      )}
 
       {/* Scrollable Content */}
       <div className="max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-6 space-y-4 md:space-y-6 pb-24 md:pb-32">
 
-
-        {customerDeliveryOtp && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
+        {!isTakeawayOrder && customerDeliveryOtp && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
           <motion.div
             className="bg-blue-50 rounded-xl p-4 shadow-sm border border-blue-100"
             initial={{ opacity: 0, y: 20 }}
@@ -2312,7 +2421,7 @@ export default function OrderTracking() {
           </motion.div>
         )}
 
-        {isQuickOrder && !customerDeliveryOtp && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
+        {!isTakeawayOrder && isQuickOrder && !customerDeliveryOtp && orderStatus !== 'delivered' && orderStatus !== 'cancelled' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -2365,7 +2474,7 @@ export default function OrderTracking() {
         </motion.div>
 
         {/* Delivery Partner Info */}
-        {visibleDeliveryPartners.length > 0 && (
+        {!isTakeawayOrder && visibleDeliveryPartners.length > 0 && (
           <motion.div
             className="bg-white dark:bg-neutral-800 rounded-xl shadow-sm overflow-hidden"
             initial={{ opacity: 0, y: 20 }}

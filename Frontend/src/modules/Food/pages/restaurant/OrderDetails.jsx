@@ -16,6 +16,7 @@ import {
   XCircle,
   Loader2,
   Volume2,
+  ShoppingBag,
 } from "lucide-react"
 import ResendNotificationButton from "@food/components/restaurant/ResendNotificationButton"
 const debugLog = (...args) => {}
@@ -60,6 +61,35 @@ export default function OrderDetails() {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
+
+  const handleUpdateStatus = async (nextStatus) => {
+    if (!orderData?.id || updatingStatus) return
+    try {
+      setUpdatingStatus(true)
+      if (nextStatus === 'ready') {
+        await restaurantAPI.markOrderReady(orderData.id)
+      } else if (nextStatus === 'completed') {
+        await restaurantAPI.markOrderCompleted(orderData.id)
+      } else if (nextStatus === 'preparing') {
+        await restaurantAPI.acceptOrder(orderData.id)
+      } else {
+        await restaurantAPI.updateOrderStatus(orderData.id, { orderStatus: nextStatus })
+      }
+      setToastMessage(`Order status updated successfully`)
+      setShowToast(true)
+      setTimeout(() => {
+        setShowToast(false)
+        window.location.reload()
+      }, 1200)
+    } catch (err) {
+      setToastMessage(err.response?.data?.message || "Failed to update order status")
+      setShowToast(true)
+      setTimeout(() => setShowToast(false), 3000)
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }
 
   // Fetch order data from API
   useEffect(() => {
@@ -196,6 +226,7 @@ export default function OrderDetails() {
           // Transform API order data to match component structure
           const transformedOrder = {
             id: order.orderId || order._id,
+            orderType: order.orderType || 'delivery',
             status: orderStatusRaw.toUpperCase() || 'PENDING',
             date: new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
             time: new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
@@ -220,6 +251,7 @@ export default function OrderDetails() {
               deliveryFee,
               platformFee,
               discount,
+              takeawayDiscount: firstNumber(pricing.takeawayDiscount, order.takeawayDiscount) ?? 0,
               couponDiscount,
               referralDiscount,
               total,
@@ -234,9 +266,9 @@ export default function OrderDetails() {
               { event: 'Order placed', timestamp: new Date(order.createdAt).toLocaleString('en-GB'), status: 'completed' },
               ...(reached.confirmed ? [{ event: 'Order confirmed', timestamp: order.tracking?.confirmed?.timestamp ? new Date(order.tracking.confirmed.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
               ...(reached.preparing ? [{ event: 'Preparing', timestamp: order.tracking?.preparing?.timestamp ? new Date(order.tracking.preparing.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
-              ...(reached.ready ? [{ event: 'Ready for pickup', timestamp: order.tracking?.ready?.timestamp ? new Date(order.tracking.ready.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
-              ...(reached.outForDelivery ? [{ event: 'Out for delivery', timestamp: order.tracking?.outForDelivery?.timestamp ? new Date(order.tracking.outForDelivery.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
-              ...(reached.delivered ? [{ event: 'Delivered', timestamp: order.tracking?.delivered?.timestamp ? new Date(order.tracking.delivered.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
+              ...(reached.ready ? [{ event: order.orderType === 'takeaway' ? 'Ready at counter' : 'Ready for pickup', timestamp: order.tracking?.ready?.timestamp ? new Date(order.tracking.ready.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
+              ...(reached.outForDelivery && order.orderType !== 'takeaway' ? [{ event: 'Out for delivery', timestamp: order.tracking?.outForDelivery?.timestamp ? new Date(order.tracking.outForDelivery.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
+              ...(reached.delivered ? [{ event: order.orderType === 'takeaway' ? 'Handed over / Completed' : 'Delivered', timestamp: order.tracking?.delivered?.timestamp ? new Date(order.tracking.delivered.timestamp).toLocaleString('en-GB') : '', status: 'completed' }] : []),
               ...(statusLower === 'cancelled' ? [{ event: 'Cancelled', timestamp: order.cancelledAt ? new Date(order.cancelledAt).toLocaleString('en-GB') : '', status: 'rejected', reason: order.cancellationReason }] : [])
             ]
           }
@@ -716,13 +748,21 @@ export default function OrderDetails() {
         <div className="bg-white rounded-lg p-4">
           {/* Status and Order ID Row */}
           <div className="flex items-start justify-between mb-3">
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`px-2.5 py-1 rounded text-xs font-bold ${getStatusColor(orderData.status)}`}>
                 {orderData.status}
               </span>
+              {orderData.orderType === 'takeaway' && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-extrabold bg-amber-100 text-amber-800 border border-amber-300 uppercase tracking-tight">
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  <span>Takeaway</span>
+                </span>
+              )}
+            </div>
+            <div className="flex flex-col items-end gap-1">
               <span className="text-xs text-gray-500">{orderData.date}, {orderData.time}</span>
-              {/* Resend button for order details */}
-              {(orderData.status === "PREPARING" || orderData.status === "READY" || orderData.status === "CONFIRMED") && 
+              {/* Resend button for delivery orders */}
+              {orderData.orderType !== 'takeaway' && (orderData.status === "PREPARING" || orderData.status === "READY" || orderData.status === "CONFIRMED") && 
                 orderData.dispatchStatus !== "accepted" && (
                 <div className="mt-2">
                   <ResendNotificationButton 
@@ -733,6 +773,51 @@ export default function OrderDetails() {
               )}
             </div>
           </div>
+
+          {/* Takeaway Lifecycle Action Buttons */}
+          {orderData.orderType === 'takeaway' && (
+            <div className="my-3 p-3 bg-amber-50/50 rounded-xl border border-amber-200/70 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold text-amber-900">Self-Pickup Order Action</p>
+                <p className="text-[11px] text-amber-700">
+                  {orderData.status === 'CONFIRMED' ? 'Order accepted. Start preparation when ready.' :
+                   orderData.status === 'PREPARING' ? 'Food is cooking. Mark ready when packed.' :
+                   orderData.status === 'READY' ? 'Order is packed at counter. Handover to customer.' :
+                   'Order is completed.'}
+                </p>
+              </div>
+
+              {orderData.status === 'CONFIRMED' && (
+                <button
+                  onClick={() => handleUpdateStatus('preparing')}
+                  disabled={updatingStatus}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-60"
+                >
+                  {updatingStatus ? "Updating..." : "Start Cooking"}
+                </button>
+              )}
+
+              {orderData.status === 'PREPARING' && (
+                <button
+                  onClick={() => handleUpdateStatus('ready')}
+                  disabled={updatingStatus}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-60"
+                >
+                  {updatingStatus ? "Updating..." : "Ready for Pickup"}
+                </button>
+              )}
+
+              {orderData.status === 'READY' && (
+                <button
+                  onClick={() => handleUpdateStatus('completed')}
+                  disabled={updatingStatus}
+                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs disabled:opacity-60"
+                >
+                  {updatingStatus ? "Updating..." : "Mark Handed Over"}
+                </button>
+              )}
+            </div>
+          )}
 
           {/* Order ID */}
           <div className="flex items-center gap-2 mb-2">
@@ -762,7 +847,9 @@ export default function OrderDetails() {
 
         {/* Customer Details Section */}
         <div>
-          <h2 className="text-base font-bold text-gray-900 mb-3">Customer details</h2>
+          <h2 className="text-base font-bold text-gray-900 mb-3">
+            {orderData.orderType === 'takeaway' ? 'Pickup customer details' : 'Customer details'}
+          </h2>
           
           {/* Customer Card */}
           <div className="bg-white rounded-lg p-4 gap-8 flex flex-col mb-3">
@@ -778,12 +865,21 @@ export default function OrderDetails() {
               <hr className="border-gray-200 my-3" />
               
             </div>
-               <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-gray-600" />
               <div className="flex-1">
-                <p className="text-sm text-gray-900">{orderData.customer.location}</p>
+                <p className="text-sm text-gray-900">
+                  {orderData.orderType === 'takeaway' ? 'Self-Pickup at Restaurant Counter' : orderData.customer.location}
+                </p>
+                {orderData.orderType === 'takeaway' && (
+                  <p className="text-xs text-amber-600 font-medium mt-0.5">
+                    Customer will collect from counter. No delivery partner assigned.
+                  </p>
+                )}
               </div>
-              <p className="text-sm text-gray-600">{orderData.customer.distance}</p>
+              {orderData.orderType !== 'takeaway' && (
+                <p className="text-sm text-gray-600">{orderData.customer.distance}</p>
+              )}
             </div>
           </div>
 
@@ -874,6 +970,12 @@ export default function OrderDetails() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-green-700">Discount</span>
                 <span className="text-sm text-green-700">{formatDiscount(orderData.billing.discount)}</span>
+              </div>
+            )}
+            {Number(orderData.billing.takeawayDiscount) > 0 && (
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm text-amber-700 font-medium">Takeaway discount</span>
+                <span className="text-sm text-amber-700 font-medium">{formatDiscount(orderData.billing.takeawayDiscount)}</span>
               </div>
             )}
             {Number(orderData.billing.couponDiscount) > 0 && (

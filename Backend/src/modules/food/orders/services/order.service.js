@@ -1659,18 +1659,20 @@ export async function updateDispatchSettings(dispatchMode, adminId) {
 
 // ----- Calculate (validation + return pricing from payload) -----
 export async function calculateOrder(userId, dto) {
+  const isTakeaway = dto?.orderType === "takeaway";
   const items = normalizeOrderItems(dto.items, dto.orderType);
   await syncItemsWithDatabase(items);
-
 
   const hasFoodItems = items.some((item) => item.type === "food");
   const hasQuickItems = items.some((item) => item.type === "quick");
   const orderType =
-    hasFoodItems && hasQuickItems
-      ? "mixed"
-      : hasQuickItems
-        ? "quick"
-        : "food";
+    isTakeaway
+      ? "takeaway"
+      : hasFoodItems && hasQuickItems
+        ? "mixed"
+        : hasQuickItems
+          ? "quick"
+          : "food";
   const subtotal = items.reduce(
     (sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1),
     0,
@@ -1686,7 +1688,9 @@ export async function calculateOrder(userId, dto) {
     deliveryFeeRanges: [],
     freeDeliveryThreshold: 149,
     platformFee: 5,
+    takeawayPlatformFee: 2,
     gstRate: 5,
+    gstOnTakeawayPlatformFee: 5,
     mixedOrderDistanceLimit: 2,
     mixedOrderAngleLimit: 35
   };
@@ -1698,7 +1702,9 @@ export async function calculateOrder(userId, dto) {
 
   // Ensure individual fields are numbers and not NaN/undefined even if feeDoc exists
   feeSettings.platformFee = Number(feeSettings.platformFee ?? defaultFeeSettings.platformFee);
+  feeSettings.takeawayPlatformFee = Number(feeSettings.takeawayPlatformFee ?? defaultFeeSettings.takeawayPlatformFee);
   feeSettings.gstRate = Number(feeSettings.gstRate ?? defaultFeeSettings.gstRate);
+  feeSettings.gstOnTakeawayPlatformFee = Number(feeSettings.gstOnTakeawayPlatformFee ?? defaultFeeSettings.gstOnTakeawayPlatformFee);
   feeSettings.deliveryFee = Number(feeSettings.deliveryFee ?? defaultFeeSettings.deliveryFee);
   feeSettings.freeDeliveryThreshold = Number(feeSettings.freeDeliveryThreshold ?? defaultFeeSettings.freeDeliveryThreshold);
   feeSettings.mixedOrderDistanceLimit = Number(feeSettings.mixedOrderDistanceLimit ?? defaultFeeSettings.mixedOrderDistanceLimit);
@@ -1762,6 +1768,9 @@ export async function calculateOrder(userId, dto) {
     throw new ValidationError("Restaurant not available");
   if (primaryRestaurant.isAcceptingOrders === false)
     throw new ValidationError("Restaurant is currently offline and not accepting orders");
+  if (isTakeaway && primaryRestaurant.isTakeawayEnabled === false) {
+    throw new ValidationError("Restaurant is not currently accepting takeaway orders");
+  }
 
   const inactiveQuickSource = [...sourceMap.values()].find(
     (source) =>
@@ -1775,53 +1784,59 @@ export async function calculateOrder(userId, dto) {
   }
 
   const packagingFee = 0;
-  const platformFee = feeSettings.platformFee;
+  const platformFee = isTakeaway
+    ? feeSettings.takeawayPlatformFee
+    : feeSettings.platformFee;
 
-  // Delivery fee by subtotal range (fallback to flat fee; free above threshold).
-  const freeThreshold = feeSettings.freeDeliveryThreshold;
+  // Delivery fee by subtotal range (fallback to flat fee; free above threshold; 0 for takeaway).
   let deliveryFee = 0;
-  if (
-    Number.isFinite(freeThreshold) &&
-    freeThreshold > 0 &&
-    subtotal >= freeThreshold
-  ) {
-    deliveryFee = 0;
-  } else {
-    const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
-      ? [...feeSettings.deliveryFeeRanges]
-      : [];
-    if (ranges.length > 0) {
-      ranges.sort((a, b) => Number(a.min) - Number(b.min));
-      let matched = null;
-      for (let i = 0; i < ranges.length; i += 1) {
-        const r = ranges[i] || {};
-        const min = Number(r.min);
-        const max = Number(r.max);
-        const fee = Number(r.fee);
-        if (
-          !Number.isFinite(min) ||
-          !Number.isFinite(max) ||
-          !Number.isFinite(fee)
-        )
-          continue;
-        const isLast = i === ranges.length - 1;
-        const inRange = isLast
-          ? subtotal >= min && subtotal <= max
-          : subtotal >= min && subtotal < max;
-        if (inRange) {
-          matched = fee;
-          break;
-        }
-      }
-      deliveryFee = Number.isFinite(matched)
-        ? matched
-        : feeSettings.deliveryFee;
+  if (!isTakeaway) {
+    const freeThreshold = feeSettings.freeDeliveryThreshold;
+    if (
+      Number.isFinite(freeThreshold) &&
+      freeThreshold > 0 &&
+      subtotal >= freeThreshold
+    ) {
+      deliveryFee = 0;
     } else {
-      deliveryFee = feeSettings.deliveryFee;
+      const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
+        ? [...feeSettings.deliveryFeeRanges]
+        : [];
+      if (ranges.length > 0) {
+        ranges.sort((a, b) => Number(a.min) - Number(b.min));
+        let matched = null;
+        for (let i = 0; i < ranges.length; i += 1) {
+          const r = ranges[i] || {};
+          const min = Number(r.min);
+          const max = Number(r.max);
+          const fee = Number(r.fee);
+          if (
+            !Number.isFinite(min) ||
+            !Number.isFinite(max) ||
+            !Number.isFinite(fee)
+          )
+            continue;
+          const isLast = i === ranges.length - 1;
+          const inRange = isLast
+            ? subtotal >= min && subtotal <= max
+            : subtotal >= min && subtotal < max;
+          if (inRange) {
+            matched = fee;
+            break;
+          }
+        }
+        deliveryFee = Number.isFinite(matched)
+          ? matched
+          : feeSettings.deliveryFee;
+      } else {
+        deliveryFee = feeSettings.deliveryFee;
+      }
     }
   }
 
-  const gstRate = feeSettings.gstRate;
+  const gstRate = isTakeaway
+    ? feeSettings.gstOnTakeawayPlatformFee
+    : feeSettings.gstRate;
   const tax =
     Number.isFinite(gstRate) && gstRate > 0
       ? Math.round(subtotal * (gstRate / 100))
@@ -1829,6 +1844,14 @@ export async function calculateOrder(userId, dto) {
 
   let discount = 0;
   let appliedCoupon = null;
+
+  // Apply restaurant takeaway discount if configured
+  let takeawayDiscountAmount = 0;
+  if (isTakeaway && Number(primaryRestaurant.takeawayDiscount || 0) > 0) {
+    takeawayDiscountAmount = Math.round(subtotal * (Number(primaryRestaurant.takeawayDiscount) / 100));
+    discount += takeawayDiscountAmount;
+  }
+
   const codeRaw = dto.couponCode
     ? String(dto.couponCode).trim().toUpperCase()
     : "";
@@ -1836,7 +1859,7 @@ export async function calculateOrder(userId, dto) {
     const now = new Date();
     const offer = await FoodOffer.findOne({ couponCode: codeRaw }).lean();
     if (!offer) {
-      discount = 0;
+      // no coupon
     } else {
       const statusOk = offer.status === "active";
       const startOk = !offer.startDate || now >= new Date(offer.startDate);
@@ -1883,22 +1906,28 @@ export async function calculateOrder(userId, dto) {
         perUserOk &&
         firstOrderOk;
       if (allowed) {
+        let couponDiscount = 0;
         if (offer.discountType === "percentage") {
           const raw = subtotal * (Number(offer.discountValue) / 100);
           const capped = Number(offer.maxDiscount)
             ? Math.min(raw, Number(offer.maxDiscount))
             : raw;
-          discount = Math.max(0, Math.min(subtotal, Math.floor(capped)));
+          couponDiscount = Math.max(0, Math.min(subtotal, Math.floor(capped)));
         } else {
-          discount = Math.max(
+          couponDiscount = Math.max(
             0,
             Math.min(subtotal, Math.floor(Number(offer.discountValue) || 0)),
           );
         }
-        appliedCoupon = { code: codeRaw, discount };
+        discount += couponDiscount;
+        const discountBearer = offer.restaurantId ? 'restaurant' : 'admin';
+        appliedCoupon = { code: codeRaw, discount: couponDiscount, discountBearer };
       }
     }
   }
+
+  discount = Math.min(subtotal, discount);
+
   const quickDeliveryFee = orderType === "mixed"
     ? Number(feeSettings.deliveryFee || 25)
     : 0;
@@ -1956,10 +1985,12 @@ export async function calculateOrder(userId, dto) {
       deliveryFee: selectedDeliveryFee,
       platformFee,
       discount,
+      discountBearer: appliedCoupon?.discountBearer || (takeawayDiscountAmount > 0 ? 'restaurant' : 'admin'),
       total,
       currency: "INR",
       couponCode: appliedCoupon?.code || codeRaw || null,
       appliedCoupon,
+      takeawayDiscount: takeawayDiscountAmount,
       deliveryOptions,
       pickupDistanceKm: eligibility.pickupDistanceKm,
       combinedPickupEligible: eligibility.eligible,
@@ -1974,18 +2005,20 @@ export async function calculateOrder(userId, dto) {
 
 // ----- Create order -----
 export async function createOrder(userId, dto) {
+  const isTakeaway = dto?.orderType === "takeaway";
   const items = normalizeOrderItems(dto.items, dto.orderType);
   await syncItemsWithDatabase(items);
-
 
   const hasFoodItems = items.some((item) => item.type === "food");
   const hasQuickItems = items.some((item) => item.type === "quick");
   const orderType =
-    hasFoodItems && hasQuickItems
-      ? "mixed"
-      : hasQuickItems
-        ? "quick"
-        : "food";
+    isTakeaway
+      ? "takeaway"
+      : hasFoodItems && hasQuickItems
+        ? "mixed"
+        : hasQuickItems
+          ? "quick"
+          : "food";
   const sourceMap = await fetchPickupSourcesByType(items);
   const foodSourceIds = [
     ...new Set(
@@ -2005,6 +2038,8 @@ export async function createOrder(userId, dto) {
       throw new ValidationError("Restaurant not accepting orders");
     if (primaryRestaurant.isAcceptingOrders === false)
       throw new ValidationError("Restaurant is currently offline and not accepting orders");
+    if (isTakeaway && primaryRestaurant.isTakeawayEnabled === false)
+      throw new ValidationError("Restaurant is currently not accepting takeaway orders");
   }
   const inactiveQuickSource = [...sourceMap.values()].find(
     (source) =>
@@ -2019,12 +2054,14 @@ export async function createOrder(userId, dto) {
 
   const orderId = await ensureUniqueOrderId();
   const settings =
-    orderType === "food" || orderType === "mixed"
+    !isTakeaway && (orderType === "food" || orderType === "mixed")
       ? await getDispatchSettings()
       : null;
   const dispatchMode = settings?.dispatchMode || "manual";
 
-  const deliveryAddress = normalizeDeliveryAddress(dto.address);
+  const deliveryAddress = isTakeaway
+    ? (dto.address ? normalizeDeliveryAddress(dto.address) : undefined)
+    : normalizeDeliveryAddress(dto.address);
 
   const paymentMethod =
     dto.paymentMethod === "card" ? "razorpay" : dto.paymentMethod;
@@ -2039,10 +2076,12 @@ export async function createOrder(userId, dto) {
 
   const isWallet = paymentMethod === "wallet";
   const pickupPoints = buildPickupPointsFromItems(items, sourceMap);
-  const combinedPickup = await evaluateCombinedPickupEligibility(
-    pickupPoints,
-    deliveryAddress,
-  );
+  const combinedPickup = !isTakeaway && deliveryAddress
+    ? await evaluateCombinedPickupEligibility(
+        pickupPoints,
+        deliveryAddress,
+      )
+    : { eligible: false, pickupDistanceKm: null, sameDirection: false, reason: "" };
   const requestedDeliveryFleet =
     dto.deliveryFleet ||
     (orderType === "mixed" ? "normal" : orderType === "quick" ? "quick" : "standard");
@@ -2069,7 +2108,7 @@ export async function createOrder(userId, dto) {
     subtotal: Number(dto.pricing?.subtotal ?? computedSubtotal),
     tax: Number(dto.pricing?.tax ?? 0),
     packagingFee: Number(dto.pricing?.packagingFee ?? 0),
-    deliveryFee: Number(dto.pricing?.deliveryFee ?? 0),
+    deliveryFee: isTakeaway ? 0 : Number(dto.pricing?.deliveryFee ?? 0),
     platformFee: Number(dto.pricing?.platformFee ?? 0),
     discount: Number(dto.pricing?.discount ?? 0),
     total: Number(dto.pricing?.total ?? 0),
@@ -2111,6 +2150,7 @@ export async function createOrder(userId, dto) {
 
   let distanceKm = null;
   if (
+    !isTakeaway &&
     (orderType === "food" || orderType === "mixed") &&
     primaryRestaurant?.location?.coordinates?.length === 2 &&
     dto.address?.location?.coordinates?.length === 2
@@ -2119,14 +2159,10 @@ export async function createOrder(userId, dto) {
     const [dLng, dLat] = dto.address.location.coordinates;
     const d = haversineKm(rLat, rLng, dLat, dLng);
     distanceKm = Number.isFinite(d) ? d : null;
-  } else {
-    console.warn(
-      `Food order ${orderId}: distance not available, rider earning set to 0`,
-    );
   }
 
   const baseRiderEarning =
-    orderType === "food" || orderType === "quick" || orderType === "mixed"
+    !isTakeaway && (orderType === "food" || orderType === "quick" || orderType === "mixed")
       ? await foodTransactionService.getRiderEarning(distanceKm)
       : 0;
 
@@ -2136,6 +2172,7 @@ export async function createOrder(userId, dto) {
 
   let incentiveAmount = 0;
   if (
+    !isTakeaway &&
     activeFeeSettings &&
     activeFeeSettings.isIncentiveEnabled &&
     normalizedPricing.subtotal >= (activeFeeSettings.incentiveThreshold || 0)
@@ -2148,7 +2185,7 @@ export async function createOrder(userId, dto) {
     );
   }
 
-  const riderEarning = baseRiderEarning + incentiveAmount;
+  const riderEarning = isTakeaway ? 0 : baseRiderEarning + incentiveAmount;
   const quickDeliveryFeeBase =
     orderType === "mixed" && dispatchStrategy === "express_split"
       ? Number(activeFeeSettings?.deliveryFee || 25)
@@ -2168,18 +2205,26 @@ export async function createOrder(userId, dto) {
       ? await foodTransactionService.getRestaurantCommissionSnapshot({
         pricing: normalizedPricing,
         restaurantId: primaryRestaurantId,
+        orderType,
       })
       : { commissionAmount: 0 };
 
   normalizedPricing.restaurantCommission = restaurantCommission || 0;
 
-  const platformProfit = Math.max(
-    0,
-    (Number.isFinite(normalizedPricing.deliveryFee) ? normalizedPricing.deliveryFee : 0) +
-    (Number.isFinite(normalizedPricing.platformFee) ? normalizedPricing.platformFee : 0) +
-    restaurantCommission -
-    riderEarning,
-  );
+  const platformProfit = isTakeaway
+    ? Math.max(
+        0,
+        (Number(normalizedPricing.platformFee) || 0) +
+        restaurantCommission -
+        (Number(normalizedPricing.discount) || 0)
+      )
+    : Math.max(
+        0,
+        (Number.isFinite(normalizedPricing.deliveryFee) ? normalizedPricing.deliveryFee : 0) +
+        (Number.isFinite(normalizedPricing.platformFee) ? normalizedPricing.platformFee : 0) +
+        restaurantCommission -
+        riderEarning,
+      );
 
   const dispatchPlan = {
     strategy: dispatchStrategy,
@@ -2210,7 +2255,7 @@ export async function createOrder(userId, dto) {
     })),
   };
 
-  if (dispatchStrategy === "express_split" || dispatchStrategy === "split") {
+  if (!isTakeaway && (dispatchStrategy === "express_split" || dispatchStrategy === "split")) {
     const legCandidates = await Promise.all(
       pickupPoints.map(async (point) => ({
         legId: `${point.pickupType}:${point.sourceId}`,
@@ -2242,9 +2287,11 @@ export async function createOrder(userId, dto) {
     pricing: normalizedPricing,
     payment,
     orderStatus: dto.scheduledAt ? "scheduled" : "created",
-    ...(orderType === "food" || orderType === "mixed"
-      ? { dispatch: { modeAtCreation: dispatchMode, status: "unassigned" } }
-      : {}),
+    ...(isTakeaway
+      ? { dispatch: { modeAtCreation: "manual", status: "not_applicable" } }
+      : (orderType === "food" || orderType === "mixed")
+        ? { dispatch: { modeAtCreation: dispatchMode, status: "unassigned" } }
+        : {}),
     dispatchPlan,
     statusHistory: [
       {
@@ -2252,17 +2299,19 @@ export async function createOrder(userId, dto) {
         byRole: "SYSTEM",
         from: "",
         to: "created",
-        note: "Order placed",
+        note: isTakeaway ? "Takeaway order placed" : "Order placed",
       },
     ],
     note: dto.note || "",
     sendCutlery: dto.sendCutlery !== false,
     deliveryFleet:
-      orderType === "mixed"
-        ? requestedDeliveryFleet
-        : orderType === "food"
-          ? dto.deliveryFleet || "standard"
-          : "quick",
+      isTakeaway
+        ? "takeaway"
+        : orderType === "mixed"
+          ? requestedDeliveryFleet
+          : orderType === "food"
+            ? dto.deliveryFleet || "standard"
+            : "quick",
     scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
     riderEarning,
     riderEarningBreakdown: {
@@ -3021,18 +3070,45 @@ export async function updateOrderStatusRestaurant(
   if (!order) throw new NotFoundError("Order not found");
   const from = order.orderStatus;
 
+  // Idempotent: If already in requested status or already cancelled, return successfully
+  if (from === orderStatus || (['cancelled_by_restaurant', 'cancelled_by_user', 'cancelled_by_admin'].includes(from) && ['cancelled_by_restaurant', 'cancelled_by_user', 'cancelled_by_admin'].includes(orderStatus))) {
+    return order;
+  }
+
   if (!isStatusAdvance(from, orderStatus)) {
     throw new ValidationError(`Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards or updated after cancellation.`);
   }
 
   order.orderStatus = orderStatus;
+  if (orderStatus === "completed" && order.orderType === "takeaway") {
+    order.pickupTime = new Date();
+    if (order.payment && (order.payment.status === "cod_pending" || order.payment.status === "created")) {
+      order.payment.status = "paid";
+    }
+  }
+
   pushStatusHistory(order, {
     byRole: "RESTAURANT",
     byId: restaurantId,
     from,
     to: orderStatus,
+    note: orderStatus === "completed" && order.orderType === "takeaway" ? "Takeaway order completed / handed over at counter" : undefined
   });
   await order.save();
+
+  // If takeaway order completed, sync transaction to settled
+  if (orderStatus === "completed" && order.orderType === "takeaway") {
+    try {
+      await foodTransactionService.updateTransactionStatus(order._id, 'completed', {
+        status: 'settled',
+        note: 'Takeaway order handed over at restaurant counter',
+        recordedByRole: 'RESTAURANT',
+        recordedById: restaurantId
+      });
+    } catch (err) {
+      logger.warn(`updateOrderStatusRestaurant completed transaction sync failed: ${err?.message || err}`);
+    }
+  }
 
   // Real-time: status update to restaurant room.
   try {
@@ -3061,14 +3137,22 @@ export async function updateOrderStatusRestaurant(
     // Custom messages for customer based on status
     if (orderStatus === "confirmed") {
       title = "Order Accepted! 🧑‍🍳";
-      body =
-        "The restaurant has accepted your order and is starting to prepare it.";
+      body = order.orderType === "takeaway"
+        ? "The restaurant has accepted your takeaway order and is preparing it."
+        : "The restaurant has accepted your order and is starting to prepare it.";
     } else if (orderStatus === "preparing") {
       title = "Food is being prepared! 🍳";
-      body = "Your food is currently being prepared by the restaurant.";
+      body = order.orderType === "takeaway"
+        ? "Your takeaway order is currently being prepared."
+        : "Your food is currently being prepared by the restaurant.";
     } else if (orderStatus === "ready_for_pickup" || orderStatus === "ready") {
-      title = "Food is ready! 🛍️";
-      body = "Your order is ready and waiting to be picked up.";
+      title = "Food is ready for pickup! 🛍️";
+      body = order.orderType === "takeaway"
+        ? "Your order is ready! Visit the restaurant counter for pickup."
+        : "Your order is ready and waiting to be picked up.";
+    } else if (orderStatus === "completed") {
+      title = "Takeaway Order Completed! 🎉";
+      body = "Your food has been picked up from the restaurant counter. Enjoy your meal!";
     } else if (String(orderStatus).includes("cancel")) {
       const isOnlinePaid =
         order.payment?.method === "razorpay" &&
@@ -3169,10 +3253,10 @@ export async function updateOrderStatusRestaurant(
     console.error("[DEBUG] Error emitting status update to restaurant:", err);
   }
 
-  // Real-time: delivery request / ready notifications.
+  // Real-time: delivery request / ready notifications (bypassed for takeaway).
   try {
     const io = getIO();
-    if (io) {
+    if (io && order.orderType !== 'takeaway') {
       // On accept (confirmed or preparing) -> request delivery partners.
       const isInitialDispatchTrigger = ((String(orderStatus) === "preparing" || String(orderStatus) === "confirmed") && (String(from) !== "preparing" && String(from) !== "confirmed"));
       if (isInitialDispatchTrigger) {
@@ -3372,6 +3456,9 @@ export async function resendDeliveryNotificationRestaurant(orderId, restaurantId
   });
 
   if (!order) throw new NotFoundError('Order not found');
+  if (order.orderType === 'takeaway') {
+    throw new ValidationError('Delivery dispatch is not applicable for takeaway orders');
+  }
 
   // Only allow if order is still active and not already terminal
   const activeStatuses = ['confirmed', 'preparing', 'ready_for_pickup', 'ready'];
@@ -4659,7 +4746,10 @@ export async function assignDeliveryPartnerAdmin(
   if (!identity) throw new ValidationError("Order id required");
   const order = await FoodOrder.findOne(identity);
   if (!order) throw new NotFoundError("Order not found");
-  if (order.dispatch.status === "accepted")
+  if (order.orderType === "takeaway") {
+    throw new ValidationError("Cannot dispatch rider for takeaway orders");
+  }
+  if (order.dispatch?.status === "accepted")
     throw new ValidationError("Order already accepted by partner");
 
   const partner = await FoodDeliveryPartner.findById(deliveryPartnerId)
@@ -5010,6 +5100,11 @@ export async function reassignDeliveryPartnerAdmin(orderId, { newDriverId, reaso
   const newDriverObjectId = new mongoose.Types.ObjectId(newDriverId);
   const identity = buildOrderIdentityFilter(orderId);
   if (!identity) throw new ValidationError("Order id required");
+  const existingOrder = await FoodOrder.findOne(identity);
+  if (!existingOrder) throw new NotFoundError("Order not found");
+  if (existingOrder.orderType === "takeaway") {
+    throw new ValidationError("Cannot dispatch rider for takeaway orders");
+  }
 
   const partner = await FoodDeliveryPartner.findById(newDriverObjectId).lean();
   if (!partner || partner.status !== 'approved') {

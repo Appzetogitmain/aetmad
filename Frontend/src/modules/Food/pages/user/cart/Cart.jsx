@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, Fragment } from "react"
 import { createPortal } from "react-dom"
 import { Link, useNavigate } from "react-router-dom"
-import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy } from "lucide-react"
+import { Plus, Minus, ArrowLeft, ChevronRight, Clock, MapPin, Phone, FileText, Utensils, Tag, Percent, Share2, ChevronUp, ChevronDown, X, Check, Settings, CreditCard, Wallet, Building2, Sparkles, Banknote, Zap, CheckCircle2, MessageCircle, Send, Mail, Copy, ShoppingBag } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
 
@@ -195,8 +195,19 @@ export default function Cart() {
   const { vegMode, getDefaultAddress, getDefaultPaymentMethod, setDefaultAddress, addresses, paymentMethods, userProfile } = useProfile()
   const { createOrder } = useOrders()
   const { openLocationSelector } = useLocationSelector()
-  const { location: currentLocation, loading: currentLocationLoading } = useUserLocation() // Get live location address
-
+  const { location: currentLocation, loading: currentLocationLoading } = useUserLocation()
+  const [orderType, setOrderType] = useState(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramType = urlParams.get("orderType");
+      if (paramType === "takeaway" || paramType === "delivery") return paramType;
+      const itemType = foodItems[0]?.orderType;
+      if (itemType === "takeaway") return "takeaway";
+      return "delivery";
+    } catch {
+      return "delivery";
+    }
+  });
   const [showCoupons, setShowCoupons] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponCode, setCouponCode] = useState("")
@@ -313,7 +324,9 @@ export default function Cart() {
     deliveryFeeRanges: [],
     freeDeliveryThreshold: 149,
     platformFee: 5,
+    takeawayPlatformFee: 2,
     gstRate: 5,
+    gstOnTakeawayPlatformFee: 5,
   })
 
 
@@ -957,11 +970,11 @@ export default function Cart() {
     fetchCouponsForCartItems()
   }, [cart, restaurantId, isQuickCart])
 
-  // Calculate pricing from backend whenever cart, address, or coupon changes
+  // Calculate pricing from backend whenever cart, address, orderType, or coupon changes
   useEffect(() => {
     const calculatePricing = async () => {
       // Don't calculate here if it's a mixed or quick cart - those components handle their own pricing
-      if (cart.length === 0 || !hasSavedAddress || (hasQuickItems && hasFoodItems) || isQuickCart) {
+      if (cart.length === 0 || (!hasSavedAddress && orderType !== "takeaway") || (hasQuickItems && hasFoodItems) || isQuickCart) {
         setPricing(null)
         return
       }
@@ -974,10 +987,10 @@ export default function Cart() {
         const resolvedCouponCode = appliedCoupon?.code || couponCode || undefined
 
         const response = await orderAPI.calculateOrder({
-          orderType: "food",
+          orderType: orderType,
           items,
           restaurantId: resolvedRestaurantId,
-          address: defaultAddress,
+          address: orderType === "takeaway" ? (defaultAddress || undefined) : defaultAddress,
           couponCode: resolvedCouponCode,
         })
 
@@ -1069,7 +1082,7 @@ export default function Cart() {
     }
 
     calculatePricing()
-  }, [cart, defaultAddress, appliedCoupon, couponCode, restaurantId])
+  }, [cart, defaultAddress, appliedCoupon, couponCode, restaurantId, orderType])
 
   // Fetch wallet balance
   useEffect(() => {
@@ -1119,7 +1132,9 @@ export default function Cart() {
             deliveryFeeRanges: response.data.data.feeSettings.deliveryFeeRanges || [],
             freeDeliveryThreshold: response.data.data.feeSettings.freeDeliveryThreshold || 149,
             platformFee: response.data.data.feeSettings.platformFee || 5,
+            takeawayPlatformFee: response.data.data.feeSettings.takeawayPlatformFee || 2,
             gstRate: response.data.data.feeSettings.gstRate || 5,
+            gstOnTakeawayPlatformFee: response.data.data.feeSettings.gstOnTakeawayPlatformFee || 5,
           })
         }
       } catch (error) {
@@ -1143,9 +1158,10 @@ export default function Cart() {
   }, [])
 
   // Use backend pricing if available, otherwise fallback to database fee settings
-  const subtotal = pricing?.subtotal || cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
+  const isTakeaway = orderType === "takeaway"
+  const subtotal = pricing?.subtotal !== undefined ? Number(pricing.subtotal) : cart.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0)
   const fallbackDeliveryFee = (() => {
-    if (appliedCoupon?.freeDelivery) {
+    if (isTakeaway || appliedCoupon?.freeDelivery) {
       return 0
     }
 
@@ -1174,19 +1190,28 @@ export default function Cart() {
 
     return Number(feeSettings.deliveryFee || 0)
   })()
-  const deliveryFee = pricing?.deliveryFee || fallbackDeliveryFee
-  const deliveryFeeBreakdown = pricing?.deliveryFeeBreakdown || null
+  const deliveryFee = isTakeaway ? 0 : (pricing?.deliveryFee !== undefined ? Number(pricing.deliveryFee) : fallbackDeliveryFee)
+  const deliveryFeeBreakdown = isTakeaway ? null : (pricing?.deliveryFeeBreakdown || null)
   const hasDistanceDeliveryBreakdown =
+    !isTakeaway &&
     deliveryFeeBreakdown?.source === "distance" &&
     Number.isFinite(Number(deliveryFeeBreakdown?.distanceKm))
   const deliveryFeeBreakdownText = hasDistanceDeliveryBreakdown
     ? `Distance ${Number(deliveryFeeBreakdown.distanceKm).toFixed(1)} km: ${RUPEE_SYMBOL}${Number(deliveryFeeBreakdown.basePayout || 0).toFixed(0)} base + ${Number(deliveryFeeBreakdown.extraDistanceKm || 0).toFixed(1)} km x ${RUPEE_SYMBOL}${Number(deliveryFeeBreakdown.commissionPerKm || 0).toFixed(0)}`
     : null
-  const platformFee = pricing?.platformFee || feeSettings.platformFee
-  const gstCharges = pricing?.tax || Math.round(subtotal * (feeSettings.gstRate / 100))
-  const discount = pricing?.discount || (appliedCoupon ? Math.min(appliedCoupon.discount, subtotal * 0.5) : 0)
+  const fallbackPlatformFee = isTakeaway
+    ? Number(feeSettings.takeawayPlatformFee ?? 2)
+    : Number(feeSettings.platformFee ?? 5)
+  const platformFee = pricing?.platformFee !== undefined ? Number(pricing.platformFee) : fallbackPlatformFee
+  const gstRate = isTakeaway
+    ? Number(feeSettings.gstOnTakeawayPlatformFee ?? feeSettings.gstRate ?? 5)
+    : Number(feeSettings.gstRate ?? 5)
+  const gstCharges = pricing?.tax !== undefined ? Number(pricing.tax) : Math.round(subtotal * (gstRate / 100))
+  const couponDiscount = Number(pricing?.couponDiscount || pricing?.discount || (appliedCoupon ? Math.min(appliedCoupon.discount, subtotal * 0.5) : 0))
+  const takeawayDiscount = isTakeaway ? Number(pricing?.takeawayDiscount || 0) : 0
+  const discount = couponDiscount
   const totalBeforeDiscount = subtotal + deliveryFee + platformFee + gstCharges
-  const total = pricing?.total || (totalBeforeDiscount - discount)
+  const total = pricing?.total !== undefined ? Number(pricing.total) : Math.max(0, totalBeforeDiscount - discount - takeawayDiscount)
   const savings = pricing?.savings ?? Math.max(0, totalBeforeDiscount - total)
   const selectedPaymentLabel =
     selectedPaymentMethod === "wallet"
@@ -1526,7 +1551,7 @@ export default function Cart() {
 
 
   const handlePlaceOrder = async () => {
-    if (!hasSavedAddress) {
+    if (!hasSavedAddress && orderType !== "takeaway") {
       toast.error("Please choose a delivery location to continue")
       openLocationSelector()
       return
@@ -1563,10 +1588,11 @@ export default function Cart() {
       // Ensure couponCode is included in pricing
       const orderPricing = pricing || {
         subtotal,
-        deliveryFee,
+        deliveryFee: isTakeaway ? 0 : deliveryFee,
         tax: gstCharges,
         platformFee,
         discount,
+        takeawayDiscount,
         total,
         couponCode: appliedCoupon?.code || null
       };
@@ -1752,10 +1778,11 @@ export default function Cart() {
       })
 
       const orderPayload = {
+        orderType: orderType,
         items: orderItems,
-        address: normalizedAddress,
+        address: orderType === "takeaway" ? (normalizedAddress || undefined) : normalizedAddress,
         customerName: recipientName,
-        customerPhone: normalizedAddress?.phone || "",
+        customerPhone: normalizedAddress?.phone || recipientPhone || userProfile?.phone || "",
         restaurantId: finalRestaurantId,
         restaurantName: finalRestaurantName || undefined,
         pricing: orderPricing,
@@ -2123,6 +2150,33 @@ export default function Cart() {
           <div className="max-w-3xl mx-auto">
             {/* Main Cart Content */}
             <div className="space-y-2 md:space-y-4">
+              {/* Delivery vs Takeaway Switcher */}
+              <div className="bg-slate-100 dark:bg-[#1f1f1f] p-1 rounded-2xl flex items-center gap-1 shadow-inner border border-slate-200/60 dark:border-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setOrderType("delivery")}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    orderType === "delivery"
+                      ? "bg-white dark:bg-[#111111] text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <span>🛵 Delivery</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderType("takeaway")}
+                  className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                    orderType === "takeaway"
+                      ? "bg-amber-500 text-white shadow-sm shadow-amber-500/20"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Self Pickup / Takeaway</span>
+                </button>
+              </div>
+
               {/* Cart Items */}
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 md:py-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 dark:border-gray-800">
                 <div className="space-y-3 md:space-y-4">
@@ -2534,127 +2588,169 @@ export default function Cart() {
                 )}
               </div>
 
-              {/* Delivery Address */}
-              <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-5 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
-                <div className="flex items-start justify-between w-full text-left">
-                  <div className="flex items-start gap-4 flex-1">
-                    <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-xl mt-0.5">
-                      <MapPin className="h-5 w-5 text-[var(--primary-theme)]" />
+              {/* Delivery or Takeaway Pickup Location */}
+              {orderType === "takeaway" ? (
+                <div className="bg-gradient-to-br from-amber-50 to-orange-50/40 dark:from-amber-950/20 dark:to-slate-900 px-4 md:px-6 py-5 rounded-2xl shadow-sm border border-amber-200/80 dark:border-amber-900/40">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-amber-500 text-white p-2.5 rounded-xl mt-0.5 shadow-md shadow-amber-500/20 shrink-0">
+                      <ShoppingBag className="h-5 w-5" />
                     </div>
-                    <div className="flex-1">
-                        <div className="flex flex-col">
-                          <p className="text-sm md:text-base text-gray-800 dark:text-gray-200">
-                            Delivery at{" "}
-                            <span className="font-semibold">
-                              {deliveryAddressMode === "current" ? "Current location" : "Location"}
-                            </span>
-                          </p>
-                          {deliveryAddressMode === "current" ? (
-                            <div className="mt-1">
-                              {currentLocationLoading || !currentLocationAddress ? (
-                                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 animate-pulse">
-                                  Finding your current address...
-                                </p>
-                              ) : (
-                                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                                  {formatFullAddress(currentLocationAddress) ||
-                                    currentLocationAddress?.formattedAddress ||
-                                    currentLocationAddress?.address ||
-                                    "Add delivery address"}
-                                </p>
-                              )}
-                              <div className="mt-1 flex items-center gap-2">
-                                <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-[11px] font-semibold bg-[#FFF2EB] text-[var(--primary-theme)] dark:bg-[var(--primary-theme)]/10 dark:text-[var(--primary-theme)] border border-[var(--primary-theme)]/30">
-                                  GPS enabled
-                                </span>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                          Self-Pickup Counter
+                        </span>
+                        <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          ₹0 Delivery Fee
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                        {restaurantData?.restaurantName || restaurantData?.name || cart[0]?.restaurant || "Restaurant"}
+                      </h3>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        {restaurantData?.addressLine1 || restaurantData?.address || ""}{restaurantData?.area ? `, ${restaurantData.area}` : ""}{restaurantData?.city ? `, ${restaurantData.city}` : ""}{restaurantData?.pincode ? ` - ${restaurantData.pincode}` : ""}
+                      </p>
+                      {restaurantData?.location?.coordinates && (
+                        <a
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${restaurantData.location.coordinates[1]},${restaurantData.location.coordinates[0]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors pt-1"
+                        >
+                          <MapPin className="w-3.5 h-3.5" />
+                          <span>Get Directions on Google Maps</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <div className="p-3 rounded-xl bg-white/90 dark:bg-slate-900/90 text-xs text-slate-700 dark:text-slate-300 border border-amber-200/60 dark:border-amber-800/40 flex items-center gap-2 mt-1">
+                        <Clock className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span>Ready in ~{restaurantData?.estimatedDeliveryTimeMinutes || 20} mins • Collect directly from counter</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-5 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
+                  <div className="flex items-start justify-between w-full text-left">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="bg-orange-50 dark:bg-orange-900/20 p-2 rounded-xl mt-0.5">
+                        <MapPin className="h-5 w-5 text-[var(--primary-theme)]" />
+                      </div>
+                      <div className="flex-1">
+                          <div className="flex flex-col">
+                            <p className="text-sm md:text-base text-gray-800 dark:text-gray-200">
+                              Delivery at{" "}
+                              <span className="font-semibold">
+                                {deliveryAddressMode === "current" ? "Current location" : "Location"}
+                              </span>
+                            </p>
+                            {deliveryAddressMode === "current" ? (
+                              <div className="mt-1">
+                                {currentLocationLoading || !currentLocationAddress ? (
+                                  <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                                    Finding your current address...
+                                  </p>
+                                ) : (
+                                  <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                                    {formatFullAddress(currentLocationAddress) ||
+                                      currentLocationAddress?.formattedAddress ||
+                                      currentLocationAddress?.address ||
+                                      "Add delivery address"}
+                                  </p>
+                                )}
+                                <div className="mt-1 flex items-center gap-2">
+                                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] md:text-[11px] font-semibold bg-[#FFF2EB] text-[var(--primary-theme)] dark:bg-[var(--primary-theme)]/10 dark:text-[var(--primary-theme)] border border-[var(--primary-theme)]/30">
+                                    GPS enabled
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 pr-4">
-                              {defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add delivery address") : "Add delivery address"}
+                            ) : (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2 pr-4">
+                                {defaultAddress ? (formatFullAddress(defaultAddress) || defaultAddress?.formattedAddress || defaultAddress?.address || "Add delivery address") : "Add delivery address"}
+                              </p>
+                            )}
+                          </div>
+                          {!hasSavedAddress && (
+                            <p className="text-sm text-[var(--primary-theme)] mt-2 font-medium">
+                              Select a delivery location to continue
                             </p>
                           )}
-                        </div>
-                        {!hasSavedAddress && (
-                          <p className="text-sm text-[var(--primary-theme)] mt-2 font-medium">
-                            Select a delivery location to continue
-                          </p>
-                        )}
-                        {/* Address Selection Buttons */}
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {["Home", "Work", "Other"].map((label) => {
-                            const normalizedLabel = normalizeAddressLabel(label)
-                            const addressExists = addresses.some(addr => normalizeAddressLabel(addr.label) === normalizedLabel)
-                            return (
-                              <button
-                                key={label}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  handleSelectAddressByLabel(label)
-                                }}
-                                disabled={!addressExists}
-                                className={`text-xs px-4 py-1.5 rounded-full font-semibold transition-all ${addressExists
-                                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300'
-                                  : 'bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed dark:bg-gray-900'
-                                  }`}
-                              >
-                                {label}
-                              </button>
-                            )
-                          })}
-                        </div>
-                        {addresses.length > 0 && (
-                          <div className="mt-4 space-y-3">
-                            {addresses.map((address) => {
-                              const addressId = getAddressId(address)
-                              const isSelected = addressId && addressId === selectedAddressId
+                          {/* Address Selection Buttons */}
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {["Home", "Work", "Other"].map((label) => {
+                              const normalizedLabel = normalizeAddressLabel(label)
+                              const addressExists = addresses.some(addr => normalizeAddressLabel(addr.label) === normalizedLabel)
                               return (
                                 <button
-                                  key={addressId || `${address.label}-${address.street}-${address.city}`}
-                                  type="button"
+                                  key={label}
                                   onClick={(e) => {
                                     e.preventDefault()
                                     e.stopPropagation()
-                                    handleSelectSavedAddress(address)
+                                    handleSelectAddressByLabel(label)
                                   }}
-                                  className={`w-full text-left rounded-xl border-2 p-3 transition-colors ${isSelected
-                                    ? "border-[var(--primary-theme)] bg-orange-50/50 dark:bg-[var(--primary-theme)]/5"
-                                    : "border-slate-100 dark:border-gray-800 hover:border-slate-200"
+                                  disabled={!addressExists}
+                                  className={`text-xs px-4 py-1.5 rounded-full font-semibold transition-all ${addressExists
+                                    ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-gray-800 dark:text-gray-300'
+                                    : 'bg-gray-50 text-gray-400 border border-gray-100 cursor-not-allowed dark:bg-gray-900'
                                     }`}
                                 >
-                                  <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                        {getDisplayAddressLabel(address.label)}
-                                      </p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
-                                        {formatFullAddress(address) || address.address || "Address details"}
-                                      </p>
-                                    </div>
-                                    {isSelected && (
-                                      <span className="text-[10px] bg-[var(--primary-theme)] text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider whitespace-nowrap">
-                                        Selected
-                                      </span>
-                                    )}
-                                  </div>
+                                  {label}
                                 </button>
                               )
                             })}
                           </div>
-                        )}
+                          {addresses.length > 0 && (
+                            <div className="mt-4 space-y-3">
+                              {addresses.map((address) => {
+                                const addressId = getAddressId(address)
+                                const isSelected = addressId && addressId === selectedAddressId
+                                return (
+                                  <button
+                                    key={addressId || `${address.label}-${address.street}-${address.city}`}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      handleSelectSavedAddress(address)
+                                    }}
+                                    className={`w-full text-left rounded-xl border-2 p-3 transition-colors ${isSelected
+                                      ? "border-[var(--primary-theme)] bg-orange-50/50 dark:bg-[var(--primary-theme)]/5"
+                                      : "border-slate-100 dark:border-gray-800 hover:border-slate-200"
+                                      }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                          {getDisplayAddressLabel(address.label)}
+                                        </p>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">
+                                          {formatFullAddress(address) || address.address || "Address details"}
+                                        </p>
+                                      </div>
+                                      {isSelected && (
+                                        <span className="text-[10px] bg-[var(--primary-theme)] text-white px-2 py-0.5 rounded uppercase font-bold tracking-wider whitespace-nowrap">
+                                          Selected
+                                        </span>
+                                      )}
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={openLocationSelector}
+                      className="p-2 text-[var(--primary-theme)] bg-orange-50 rounded-full hover:bg-orange-100 transition-colors dark:bg-orange-900/20 dark:hover:bg-orange-900/40"
+                      aria-label="Open location selector"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={openLocationSelector}
-                    className="p-2 text-[var(--primary-theme)] bg-orange-50 rounded-full hover:bg-orange-100 transition-colors dark:bg-orange-900/20 dark:hover:bg-orange-900/40"
-                    aria-label="Open location selector"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Contact */}
               <div className="bg-white dark:bg-[#1a1a1a] px-4 md:px-6 py-4 rounded-2xl shadow-sm border border-slate-100 dark:border-gray-800">
@@ -2758,12 +2854,19 @@ export default function Cart() {
                       <span className="text-gray-600 dark:text-gray-400">Item Total</span>
                       <span className="text-gray-800 dark:text-gray-200 font-medium">{RUPEE_SYMBOL}{subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
-                      <span className={deliveryFee === 0 ? "text-[var(--primary-theme)] font-medium" : "text-gray-800 dark:text-gray-200 font-medium"}>
-                        {deliveryFee === 0 ? "FREE" : `${RUPEE_SYMBOL}${deliveryFee.toFixed(2)}`}
-                      </span>
-                    </div>
+                    {isTakeaway ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Delivery Fee (Self-Pickup)</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold">FREE (₹0.00)</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Delivery Fee</span>
+                        <span className={deliveryFee === 0 ? "text-[var(--primary-theme)] font-medium" : "text-gray-800 dark:text-gray-200 font-medium"}>
+                          {deliveryFee === 0 ? "FREE" : `${RUPEE_SYMBOL}${deliveryFee.toFixed(2)}`}
+                        </span>
+                      </div>
+                    )}
                     {deliveryFeeBreakdownText && (
                       <div className="text-[11px] text-gray-500 dark:text-gray-400 -mt-1.5 ml-1 border-l-2 border-gray-100 pl-2">
                         {deliveryFeeBreakdownText}
@@ -2781,6 +2884,12 @@ export default function Cart() {
                       <div className="flex justify-between text-sm text-[var(--primary-theme)] font-medium">
                         <span>Coupon Discount</span>
                         <span>-{RUPEE_SYMBOL}{discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {Number(pricing?.takeawayDiscount || 0) > 0 && (
+                      <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+                        <span>Takeaway Discount</span>
+                        <span>-{RUPEE_SYMBOL}{Number(pricing.takeawayDiscount).toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-base font-bold pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white">
@@ -2857,9 +2966,11 @@ export default function Cart() {
                   ? "Processing..."
                   : hasUnavailableItems
                     ? "Remove unavailable items"
-                    : !hasSavedAddress
-                      ? "Select Address"
-                      : "Place Order"}
+                    : orderType === "takeaway"
+                      ? "Place Takeaway Order"
+                      : !hasSavedAddress
+                        ? "Select Address"
+                        : "Place Order"}
                 <div className="flex align-center h-full">
                   <ChevronRight className="h-4 w-4 md:h-5 md:w-5" />
                 </div>

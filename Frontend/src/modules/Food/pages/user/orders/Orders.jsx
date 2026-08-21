@@ -332,6 +332,7 @@ export default function Orders() {
               estimatedDeliveryTime: order.estimatedDeliveryTime || 30,
               preparationTime: order.preparationTime || 0,
               deliveredAt: order.deliveredAt || null,
+              orderType: order.orderType || 'delivery',
               deliveryPartnerId: order.deliveryPartnerId?._id || order.deliveryPartnerId || null,
               deliveryPartnerName: order.deliveryPartnerId?.name || order.deliveryPartnerName || null,
               deliveryPartnerPhone: order.deliveryPartnerId?.phone || order.deliveryPartnerPhone || null,
@@ -760,7 +761,14 @@ Order again from this restaurant in the ${companyName} app.`
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-800 dark:text-white text-lg leading-tight">{order.restaurant}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold text-gray-800 dark:text-white text-lg leading-tight">{order.restaurant}</h3>
+                        {order.orderType === 'takeaway' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                            🛍️ TAKEAWAY
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                         Order ID: <span className="font-semibold text-gray-700 dark:text-gray-200">{order.orderId || order.id}</span>
                       </p>
@@ -898,6 +906,12 @@ Order again from this restaurant in the ${companyName} app.`
                       <div className="flex justify-between text-xs">
                         <span className="text-green-600">Discount</span>
                         <span className="text-green-600 font-medium">-{"\u20B9"}{order.pricing.discount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {Number(order.pricing?.takeawayDiscount) > 0 && (
+                      <div className="flex justify-between text-xs">
+                        <span className="text-amber-600">Takeaway Discount</span>
+                        <span className="text-amber-600 font-medium">-{"\u20B9"}{Number(order.pricing.takeawayDiscount).toFixed(2)}</span>
                       </div>
                     )}
                     {order.pricing?.couponCode && (

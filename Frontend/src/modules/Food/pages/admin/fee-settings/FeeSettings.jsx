@@ -16,6 +16,8 @@ export default function FeeSettings() {
     freeDeliveryThreshold: "",
     platformFee: "",
     gstRate: "",
+    takeawayPlatformFee: "",
+    gstOnTakeawayPlatformFee: "",
     isIncentiveEnabled: false,
     incentiveThreshold: "",
     incentivePercentage: "",
@@ -37,6 +39,8 @@ export default function FeeSettings() {
           freeDeliveryThreshold: response.data.data.feeSettings.freeDeliveryThreshold ?? "",
           platformFee: response.data.data.feeSettings.platformFee ?? "",
           gstRate: response.data.data.feeSettings.gstRate ?? "",
+          takeawayPlatformFee: response.data.data.feeSettings.takeawayPlatformFee ?? "",
+          gstOnTakeawayPlatformFee: response.data.data.feeSettings.gstOnTakeawayPlatformFee ?? "",
           isIncentiveEnabled: response.data.data.feeSettings.isIncentiveEnabled ?? false,
           incentiveThreshold: response.data.data.feeSettings.incentiveThreshold ?? "",
           incentivePercentage: response.data.data.feeSettings.incentivePercentage ?? "",
@@ -49,6 +53,8 @@ export default function FeeSettings() {
           freeDeliveryThreshold: "",
           platformFee: "",
           gstRate: "",
+          takeawayPlatformFee: "",
+          gstOnTakeawayPlatformFee: "",
           isIncentiveEnabled: false,
           incentiveThreshold: "",
           incentivePercentage: "",
@@ -77,6 +83,8 @@ export default function FeeSettings() {
         freeDeliveryThreshold: feeSettings.freeDeliveryThreshold === "" ? undefined : Number(feeSettings.freeDeliveryThreshold),
         platformFee: feeSettings.platformFee === "" ? undefined : Number(feeSettings.platformFee),
         gstRate: feeSettings.gstRate === "" ? undefined : Number(feeSettings.gstRate),
+        takeawayPlatformFee: feeSettings.takeawayPlatformFee === "" ? undefined : Number(feeSettings.takeawayPlatformFee),
+        gstOnTakeawayPlatformFee: feeSettings.gstOnTakeawayPlatformFee === "" ? undefined : Number(feeSettings.gstOnTakeawayPlatformFee),
         isIncentiveEnabled: feeSettings.isIncentiveEnabled,
         incentiveThreshold: feeSettings.incentiveThreshold === "" ? undefined : Number(feeSettings.incentiveThreshold),
         incentivePercentage: feeSettings.incentivePercentage === "" ? undefined : Number(feeSettings.incentivePercentage),
@@ -94,6 +102,8 @@ export default function FeeSettings() {
             freeDeliveryThreshold: saved.freeDeliveryThreshold ?? "",
             platformFee: saved.platformFee ?? "",
             gstRate: saved.gstRate ?? "",
+            takeawayPlatformFee: saved.takeawayPlatformFee ?? "",
+            gstOnTakeawayPlatformFee: saved.gstOnTakeawayPlatformFee ?? "",
             isIncentiveEnabled: saved.isIncentiveEnabled ?? false,
             incentiveThreshold: saved.incentiveThreshold ?? "",
             incentivePercentage: saved.incentivePercentage ?? "",
@@ -527,6 +537,45 @@ export default function FeeSettings() {
                   />
                   <p className="text-xs text-slate-500">
                     GST percentage applied on order subtotal
+                  </p>
+                </div>
+
+                {/* Takeaway Platform Fee */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Takeaway Platform Fee (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={feeSettings.takeawayPlatformFee}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, takeawayPlatformFee: e.target.value })}
+                    min="0"
+                    step="0.5"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    placeholder="2"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Platform service fee charged on Self-Pickup / Takeaway orders
+                  </p>
+                </div>
+
+                {/* GST on Takeaway Platform Fee */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    GST on Takeaway Platform Fee (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={feeSettings.gstOnTakeawayPlatformFee}
+                    onChange={(e) => setFeeSettings({ ...feeSettings, gstOnTakeawayPlatformFee: e.target.value })}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                    placeholder="18"
+                  />
+                  <p className="text-xs text-slate-500">
+                    GST percentage applied on Takeaway platform fee (standard 18%)
                   </p>
                 </div>
               </div>

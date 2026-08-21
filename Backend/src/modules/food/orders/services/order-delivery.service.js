@@ -989,6 +989,9 @@ export async function updateOrderStatusDelivery(orderId, deliveryPartnerId, orde
   }
 
   const from = order.orderStatus;
+  if (from === orderStatus) {
+    return order;
+  }
   if (!isStatusAdvance(from, orderStatus)) {
       throw new ValidationError(`Current order status '${from}' is further ahead than '${orderStatus}'. Order cannot be moved backwards.`);
   }

@@ -27,8 +27,10 @@ const getPaymentStatusColor = (paymentStatus) => {
 }
 
 const getOrderTypeColor = (orderType) => {
-  if (orderType === "Mixed") return "bg-amber-50 text-amber-600"
-  if (orderType === "Quick") return "bg-cyan-50 text-cyan-600"
+  const t = String(orderType || "").toLowerCase()
+  if (t === "takeaway" || t === "self-pickup") return "bg-amber-100 text-amber-800 border border-amber-300 font-bold"
+  if (t === "mixed") return "bg-amber-50 text-amber-600"
+  if (t === "quick") return "bg-cyan-50 text-cyan-600"
   return "bg-[#E8F8F0] text-[#00A669]"
 }
 

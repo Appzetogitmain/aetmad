@@ -48,7 +48,7 @@ const pricingSchema = z.object({
 
 export function validateCalculateOrderDto(body) {
     const schema = z.object({
-        orderType: z.enum(['food', 'quick', 'mixed']).optional(),
+        orderType: z.enum(['food', 'quick', 'mixed', 'delivery', 'takeaway']).optional(),
         items: z.array(orderItemSchema).min(1, 'At least one item required'),
         address: addressSchema.optional(),
         restaurantId: z.string().optional(),
@@ -89,7 +89,7 @@ export function validateCalculateOrderDto(body) {
                 message: 'Quick orders cannot include food items. Use mixed order type.'
             });
         }
-        if (effectiveType === 'food' && !data.restaurantId) {
+        if ((effectiveType === 'food' || effectiveType === 'takeaway') && !data.restaurantId) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ['restaurantId'],
@@ -109,7 +109,7 @@ export function validateCalculateOrderDto(body) {
 
 export function validateCreateOrderDto(body) {
     const schema = z.object({
-        orderType: z.enum(['food', 'quick', 'mixed']).optional(),
+        orderType: z.enum(['food', 'quick', 'mixed', 'delivery', 'takeaway']).optional(),
         items: z.array(orderItemSchema).min(1, 'At least one item required'),
         address: addressSchema.optional(),
         restaurantId: z.string().optional(),
@@ -156,14 +156,14 @@ export function validateCreateOrderDto(body) {
                 message: 'Quick orders cannot include food items. Use mixed order type.'
             });
         }
-        if (effectiveType === 'food' && !data.restaurantId) {
+        if ((effectiveType === 'food' || effectiveType === 'takeaway') && !data.restaurantId) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ['restaurantId'],
                 message: 'Restaurant id required'
             });
         }
-        if ((effectiveType === 'food' || effectiveType === 'mixed' || effectiveType === 'quick') && !data.address) {
+        if (effectiveType !== 'takeaway' && (effectiveType === 'food' || effectiveType === 'mixed' || effectiveType === 'quick' || effectiveType === 'delivery') && !data.address) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
                 path: ['address'],
@@ -214,6 +214,7 @@ export function validateOrderStatusDto(body) {
             'ready_for_pickup',
             'picked_up',
             'delivered',
+            'completed',
             'cancelled_by_restaurant'
         ])
     });

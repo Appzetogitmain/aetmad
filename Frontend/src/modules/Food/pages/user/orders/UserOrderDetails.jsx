@@ -449,24 +449,38 @@ export default function UserOrderDetails() {
       {/* Scrollable Content */}
       <div className="p-4 space-y-4">
         {/* Status Card */}
-        <div className="bg-white dark:bg-neutral-800 p-4 rounded-xl flex items-center gap-3 shadow-sm">
-          <div className="bg-gray-100 dark:bg-neutral-700 p-2 rounded-lg">
-            <ShoppingBag className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        <div className="bg-white dark:bg-neutral-800 p-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${order.orderType === 'takeaway' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600' : 'bg-gray-100 dark:bg-neutral-700 text-gray-600 dark:text-gray-300'}`}>
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-800 dark:text-white">
+                {order.orderType === 'takeaway' && (order.status === 'completed' || order.status === 'delivered')
+                  ? "Order Picked Up & Completed"
+                  : order.orderType === 'takeaway' && (order.status === 'ready' || order.status === 'ready_for_pickup')
+                  ? "🎉 Order Ready for Pickup!"
+                  : order.status === "delivered"
+                  ? "Order was delivered"
+                  : order.status === "scheduled"
+                  ? `Scheduled for ${new Date(order.scheduledAt).toLocaleString("en-US", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}`
+                  : "Order status: " + (order.status || "Processing")}
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {order.orderType === 'takeaway' ? 'Self-Pickup / Counter Collection' : 'Home Delivery'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="font-semibold text-gray-800 dark:text-white">
-              {order.status === "delivered"
-                ? "Order was delivered"
-                : order.status === "scheduled"
-                ? `Scheduled for ${new Date(order.scheduledAt).toLocaleString("en-US", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
-                : "Order status: " + (order.status || "Processing")}
-            </h2>
-          </div>
+          {order.orderType === 'takeaway' && (
+            <span className="px-2.5 py-1 rounded text-xs font-extrabold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+              🛍️ TAKEAWAY
+            </span>
+          )}
         </div>
 
         {/* Pickup Info Card */}
@@ -662,12 +676,20 @@ export default function UserOrderDetails() {
                 {pricing.deliveryFee ? `₹${Number(pricing.deliveryFee).toFixed(2)}` : "Free"}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 dark:text-gray-400">Platform fee</span>
-              <span className="text-gray-800 dark:text-white">
-                ₹{Number(pricing.platformFee || 0).toFixed(2)}
-              </span>
-            </div>
+            {Number(pricing.platformFee) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-gray-500 dark:text-gray-400">Platform fee</span>
+                <span className="text-gray-800 dark:text-white">
+                  ₹{Number(pricing.platformFee || 0).toFixed(2)}
+                </span>
+              </div>
+            )}
+            {Number(pricing.takeawayDiscount) > 0 && (
+              <div className="flex justify-between text-amber-600 dark:text-amber-400 font-medium">
+                <span>Takeaway discount</span>
+                <span>-₹{Number(pricing.takeawayDiscount).toFixed(2)}</span>
+              </div>
+            )}
             {Number(pricing.handlingFee) > 0 && (
               <div className="flex justify-between">
                 <span className="text-gray-500 dark:text-gray-400">Handling fee</span>
@@ -769,10 +791,12 @@ export default function UserOrderDetails() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-800 dark:text-white text-sm">
-                Delivery address
+                {order.orderType === 'takeaway' ? 'Pickup Counter Location' : 'Delivery address'}
               </h4>
               <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 leading-relaxed">
-                {addressText || "Address not available"}
+                {order.orderType === 'takeaway'
+                  ? (restaurantAddress || order.restaurantAddress || "Restaurant counter location")
+                  : (addressText || "Address not available")}
               </p>
             </div>
           </div>

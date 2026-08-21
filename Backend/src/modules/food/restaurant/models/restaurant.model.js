@@ -126,6 +126,16 @@ const restaurantSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    isTakeawayEnabled: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+    takeawayDiscount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     manualOffline: {
       type: Boolean,
       default: false,

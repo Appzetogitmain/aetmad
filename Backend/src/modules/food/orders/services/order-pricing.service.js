@@ -7,12 +7,16 @@ import { FoodOfferUsage } from '../../admin/models/offerUsage.model.js';
 import { ValidationError } from '../../../../core/auth/errors.js';
 
 export async function calculateOrderPricing(userId, dto) {
+  const isTakeaway = dto?.orderType === 'takeaway';
   const restaurant = await FoodRestaurant.findById(dto.restaurantId)
-    .select("status")
+    .select("status isTakeawayEnabled takeawayDiscount")
     .lean();
   if (!restaurant) throw new ValidationError("Restaurant not found");
   if (restaurant.status !== "approved")
     throw new ValidationError("Restaurant not available");
+  if (isTakeaway && restaurant.isTakeawayEnabled === false) {
+    throw new ValidationError("This restaurant is not currently accepting takeaway orders");
+  }
 
   const items = Array.isArray(dto.items) ? dto.items : [];
   const subtotal = items.reduce(
@@ -28,57 +32,65 @@ export async function calculateOrderPricing(userId, dto) {
     deliveryFeeRanges: [],
     freeDeliveryThreshold: 149,
     platformFee: 5,
+    takeawayPlatformFee: 2,
     gstRate: 5,
+    gstOnTakeawayPlatformFee: 5,
   };
 
   const packagingFee = 0;
-  const platformFee = Number(feeSettings.platformFee || 0);
+  const platformFee = isTakeaway
+    ? Number(feeSettings.takeawayPlatformFee ?? 2)
+    : Number(feeSettings.platformFee ?? 5);
 
-  const freeThreshold = Number(feeSettings.freeDeliveryThreshold || 0);
   let deliveryFee = 0;
-  if (
-    Number.isFinite(freeThreshold) &&
-    freeThreshold > 0 &&
-    subtotal >= freeThreshold
-  ) {
-    deliveryFee = 0;
-  } else {
-    const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
-      ? [...feeSettings.deliveryFeeRanges]
-      : [];
-    if (ranges.length > 0) {
-      ranges.sort((a, b) => Number(a.min) - Number(b.min));
-      let matched = null;
-      for (let i = 0; i < ranges.length; i += 1) {
-        const r = ranges[i] || {};
-        const min = Number(r.min);
-        const max = Number(r.max);
-        const fee = Number(r.fee);
-        if (
-          !Number.isFinite(min) ||
-          !Number.isFinite(max) ||
-          !Number.isFinite(fee)
-        ) {
-          continue;
-        }
-        const isLast = i === ranges.length - 1;
-        const inRange = isLast
-          ? subtotal >= min && subtotal <= max
-          : subtotal >= min && subtotal < max;
-        if (inRange) {
-          matched = fee;
-          break;
-        }
-      }
-      deliveryFee = Number.isFinite(matched)
-        ? matched
-        : Number(feeSettings.deliveryFee || 0);
+  if (!isTakeaway) {
+    const freeThreshold = Number(feeSettings.freeDeliveryThreshold || 0);
+    if (
+      Number.isFinite(freeThreshold) &&
+      freeThreshold > 0 &&
+      subtotal >= freeThreshold
+    ) {
+      deliveryFee = 0;
     } else {
-      deliveryFee = Number(feeSettings.deliveryFee || 0);
+      const ranges = Array.isArray(feeSettings.deliveryFeeRanges)
+        ? [...feeSettings.deliveryFeeRanges]
+        : [];
+      if (ranges.length > 0) {
+        ranges.sort((a, b) => Number(a.min) - Number(b.min));
+        let matched = null;
+        for (let i = 0; i < ranges.length; i += 1) {
+          const r = ranges[i] || {};
+          const min = Number(r.min);
+          const max = Number(r.max);
+          const fee = Number(r.fee);
+          if (
+            !Number.isFinite(min) ||
+            !Number.isFinite(max) ||
+            !Number.isFinite(fee)
+          ) {
+            continue;
+          }
+          const isLast = i === ranges.length - 1;
+          const inRange = isLast
+            ? subtotal >= min && subtotal <= max
+            : subtotal >= min && subtotal < max;
+          if (inRange) {
+            matched = fee;
+            break;
+          }
+        }
+        deliveryFee = Number.isFinite(matched)
+          ? matched
+          : Number(feeSettings.deliveryFee || 0);
+      } else {
+        deliveryFee = Number(feeSettings.deliveryFee || 0);
+      }
     }
   }
 
-  const gstRate = Number(feeSettings.gstRate || 0);
+  const gstRate = isTakeaway
+    ? Number(feeSettings.gstOnTakeawayPlatformFee ?? feeSettings.gstRate ?? 5)
+    : Number(feeSettings.gstRate ?? 5);
   const tax =
     Number.isFinite(gstRate) && gstRate > 0
       ? Math.round(subtotal * (gstRate / 100))
@@ -86,6 +98,14 @@ export async function calculateOrderPricing(userId, dto) {
 
   let discount = 0;
   let appliedCoupon = null;
+
+  // Apply restaurant takeaway discount if configured
+  let takeawayDiscountAmount = 0;
+  if (isTakeaway && Number(restaurant.takeawayDiscount || 0) > 0) {
+    takeawayDiscountAmount = Math.round(subtotal * (Number(restaurant.takeawayDiscount) / 100));
+    discount += takeawayDiscountAmount;
+  }
+
   const codeRaw = dto.couponCode
     ? String(dto.couponCode).trim().toUpperCase()
     : "";
@@ -145,23 +165,27 @@ export async function calculateOrderPricing(userId, dto) {
         firstOrderOk;
 
       if (allowed) {
+        let couponDiscount = 0;
         if (offer.discountType === "percentage") {
           const raw = subtotal * (Number(offer.discountValue) / 100);
           const capped = Number(offer.maxDiscount)
             ? Math.min(raw, Number(offer.maxDiscount))
             : raw;
-          discount = Math.max(0, Math.min(subtotal, Math.floor(capped)));
+          couponDiscount = Math.max(0, Math.min(subtotal, Math.floor(capped)));
         } else {
-          discount = Math.max(
+          couponDiscount = Math.max(
             0,
             Math.min(subtotal, Math.floor(Number(offer.discountValue) || 0)),
           );
         }
+        discount += couponDiscount;
         const discountBearer = offer.restaurantId ? 'restaurant' : 'admin';
-        appliedCoupon = { code: codeRaw, discount, discountBearer };
+        appliedCoupon = { code: codeRaw, discount: couponDiscount, discountBearer };
       }
     }
   }
+
+  discount = Math.min(subtotal, discount);
 
   const total = Math.max(
     0,
@@ -176,11 +200,12 @@ export async function calculateOrderPricing(userId, dto) {
       deliveryFee,
       platformFee,
       discount,
-      discountBearer: appliedCoupon?.discountBearer || 'admin',
+      discountBearer: appliedCoupon?.discountBearer || (takeawayDiscountAmount > 0 ? 'restaurant' : 'admin'),
       total,
       currency: "INR",
       couponCode: appliedCoupon?.code || codeRaw || null,
       appliedCoupon,
+      takeawayDiscount: takeawayDiscountAmount,
     },
   };
 }

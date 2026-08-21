@@ -871,20 +871,19 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
               </div>
               
               {adsList?.length > 0 ? (
-                <div className="flex overflow-x-auto gap-4 md:gap-5 pb-6 pt-2 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 snap-x snap-mandatory scroll-smooth">
+                <div className="flex overflow-x-auto gap-4 md:gap-5 pb-5 pt-1 no-scrollbar px-1 snap-x snap-mandatory scroll-smooth">
                   {adsList.map((ad, idx) => (
                     <div 
                       key={ad._id || idx} 
                       onClick={() => ad.linkUrl ? window.open(ad.linkUrl, '_blank') : null}
                       className={cn(
-                        "flex flex-col shrink-0 snap-start rounded-[24px] overflow-hidden group shadow-sm border border-slate-100",
+                        "flex flex-col shrink-0 snap-start rounded-[22px] md:rounded-[28px] overflow-hidden group shadow-lg hover:shadow-2xl border border-slate-200/80 dark:border-white/10 transition-all duration-300 w-[88vw] max-w-[560px] sm:w-[480px] md:w-[560px] h-[185px] sm:h-[220px] md:h-[240px]",
                         ad.linkUrl ? "cursor-pointer" : ""
                       )}
-                      style={{ width: "300px", height: "160px" }}
                     >
-                      <div className="w-full h-full relative overflow-hidden bg-slate-50">
+                      <div className="w-full h-full relative overflow-hidden bg-slate-100">
                         {ad.imageUrl?.toLowerCase().endsWith('.mp4') || ad.imageUrl?.toLowerCase().endsWith('.webm') ? (
-                          <video src={ad.imageUrl} autoPlay loop muted className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <video src={ad.imageUrl} autoPlay loop muted playsInline className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
                           <img 
                             src={ad.imageUrl} 
@@ -892,10 +891,6 @@ const Home = ({ embedded = false, onThemeChange, embeddedHeaderColor = null }) =
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                           />
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-100"></div>
-                        <div className="absolute bottom-4 left-5 right-5">
-                          <h5 className="text-white font-bold text-sm leading-tight drop-shadow-md">{ad.title}</h5>
-                        </div>
                       </div>
                     </div>
                   ))}

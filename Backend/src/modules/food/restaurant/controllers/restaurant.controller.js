@@ -5,6 +5,7 @@ import {
     getCurrentRestaurantProfile,
     updateRestaurantProfile,
     updateRestaurantAcceptingOrders,
+    updateRestaurantTakeawaySettings,
     updateCurrentRestaurantDiningSettings,
     uploadRestaurantProfileImage,
     uploadRestaurantMenuImage,
@@ -73,6 +74,19 @@ export const updateRestaurantAcceptingOrdersController = async (req, res, next) 
         const restaurantId = req.user?.userId;
         const restaurant = await updateRestaurantAcceptingOrders(restaurantId, req.body?.isAcceptingOrders);
         return sendResponse(res, 200, 'Restaurant availability updated successfully', { restaurant });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateRestaurantTakeawaySettingsController = async (req, res, next) => {
+    try {
+        const restaurantId = req.user?.userId;
+        const restaurant = await updateRestaurantTakeawaySettings(restaurantId, {
+            isTakeawayEnabled: req.body?.isTakeawayEnabled,
+            takeawayDiscount: req.body?.takeawayDiscount
+        });
+        return sendResponse(res, 200, 'Takeaway settings updated successfully', { restaurant });
     } catch (error) {
         next(error);
     }

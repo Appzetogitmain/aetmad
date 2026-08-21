@@ -31,6 +31,10 @@ export default function RestaurantCommission() {
       type: "percentage",
       value: "10"
     },
+    takeawayCommission: {
+      type: "percentage",
+      value: "8"
+    },
     notes: ""
   })
   const [formErrors, setFormErrors] = useState({})
@@ -182,6 +186,10 @@ export default function RestaurantCommission() {
         type: "percentage",
         value: "10"
       },
+      takeawayCommission: {
+        type: "percentage",
+        value: "8"
+      },
       notes: ""
     })
     setFormErrors({})
@@ -236,6 +244,10 @@ export default function RestaurantCommission() {
           defaultCommission: {
             type: commissionData.defaultCommission?.type || "percentage",
             value: commissionData.defaultCommission?.value?.toString() || "10"
+          },
+          takeawayCommission: {
+            type: commissionData.takeawayCommission?.type || "percentage",
+            value: commissionData.takeawayCommission?.value?.toString() || "8"
           },
           notes: commissionData.notes || ""
         })
@@ -308,6 +320,10 @@ export default function RestaurantCommission() {
           type: formData.defaultCommission.type,
           value: parseFloat(formData.defaultCommission.value)
         },
+        takeawayCommission: formData.takeawayCommission?.value ? {
+          type: formData.takeawayCommission.type || "percentage",
+          value: parseFloat(formData.takeawayCommission.value)
+        } : undefined,
         notes: formData.notes
       }
 
@@ -606,6 +622,49 @@ export default function RestaurantCommission() {
                   {formErrors.defaultCommission && (
                     <p className="text-xs text-red-500 mt-1">{formErrors.defaultCommission}</p>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Takeaway Commission */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Takeaway Commission <span className="text-amber-600 font-normal">(For Self-Pickup orders)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <select
+                    value={formData.takeawayCommission?.type || "percentage"}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      takeawayCommission: { ...prev.takeawayCommission, type: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="amount">Fixed Amount (₹)</option>
+                  </select>
+                </div>
+                <div>
+                  <input
+                    type="number"
+                    step={formData.takeawayCommission?.type === "percentage" ? "0.1" : "0.01"}
+                    min="0"
+                    value={formData.takeawayCommission?.value || ""}
+                    onKeyDown={(e) => {
+                      if (e.key === '-') e.preventDefault();
+                    }}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (parseFloat(val) < 0) val = Math.abs(parseFloat(val)).toString();
+                      setFormData(prev => ({
+                        ...prev,
+                        takeawayCommission: { ...prev.takeawayCommission, value: val }
+                      }))
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                    placeholder={formData.takeawayCommission?.type === "percentage" ? "e.g., 8" : "e.g., 5.00"}
+                  />
                 </div>
               </div>
             </div>

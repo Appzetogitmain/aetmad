@@ -1361,6 +1361,11 @@ export const restaurantAPI = {
     restaurantAPI.updateOrderStatus(orderId, {
       orderStatus: "ready_for_pickup",
     }),
+  /** Mark takeaway order handed over / completed. */
+  markOrderCompleted: (orderId) =>
+    restaurantAPI.updateOrderStatus(orderId, {
+      orderStatus: "completed",
+    }),
   /**
    * Get a single order by id for restaurant screens.
    * Prefer direct endpoint; fallback to list+filter for backward compatibility.

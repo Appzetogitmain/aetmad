@@ -57,86 +57,86 @@ export default function BottomNavigation() {
   if (isKeyboardOpen) return null
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50">
-      <div className="relative bg-white/95 backdrop-blur-md dark:bg-[#1a1a1a]/95 border-t border-gray-100 dark:border-gray-800 shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-around h-auto px-2 sm:px-4">
+    <div className="md:hidden fixed bottom-3 left-3 right-3 z-50 max-w-md mx-auto">
+      <div className="relative bg-white/95 backdrop-blur-lg dark:bg-[#141414]/95 border border-slate-200/80 dark:border-white/10 rounded-[26px] shadow-[0_12px_36px_rgba(0,0,0,0.14)] overflow-hidden">
+        <div className="flex items-center justify-around h-auto px-1.5 py-1">
           {/* Delivery Tab */}
           <Link
             to="/food/user"
             replace
-            className={`group flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isDelivery
-                ? "text-[#0B3122] dark:text-[#0B3122]"
-                : "text-gray-600 dark:text-gray-400"
+            className={`group flex flex-1 flex-col items-center gap-1 px-2 py-1.5 transition-all duration-200 relative ${isDelivery
+                ? "text-[#0B3122] dark:text-emerald-400"
+                : "text-gray-500 dark:text-gray-400"
               }`}
           >
-            <Truck className={`h-5 w-5 ${isDelivery ? "text-[#0B3122] dark:text-[#0B3122] fill-[#0B3122] dark:fill-[#0B3122]" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`} strokeWidth={1.5} />
-            <span className={`text-xs sm:text-sm font-medium ${isDelivery ? "text-[#0B3122] dark:text-[#0B3122] font-semibold" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`}>
+            <Truck className={`h-5 w-5 transition-transform duration-200 ${isDelivery ? "text-[#0B3122] dark:text-emerald-400 fill-[#0B3122] dark:fill-emerald-400 scale-105" : "text-gray-500 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-emerald-400"}`} strokeWidth={1.5} />
+            <span className={`text-[11px] font-medium ${isDelivery ? "text-[#0B3122] dark:text-emerald-400 font-bold" : "text-gray-500 dark:text-gray-400"}`}>
               Delivery
             </span>
             {isDelivery && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#0B3122] dark:bg-[#0B3122] rounded-b-full" />
+              <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#0B3122] dark:bg-emerald-400 rounded-full" />
             )}
           </Link>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
+          <div className="h-6 w-px bg-gray-200/80 dark:bg-gray-800" />
 
           {/* Most Discounted Tab */}
           <Link
             to="/food/user/most-discounted"
-            className={`group flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isUnder250
-                ? "text-[#0B3122] dark:text-[#0B3122]"
-                : "text-gray-600 dark:text-gray-400"
+            className={`group flex flex-1 flex-col items-center gap-1 px-2 py-1.5 transition-all duration-200 relative ${isUnder250
+                ? "text-[#0B3122] dark:text-emerald-400"
+                : "text-gray-500 dark:text-gray-400"
               }`}
           >
-            <Tag className={`h-5 w-5 ${isUnder250 ? "text-[#0B3122] dark:text-[#0B3122] fill-[#0B3122] dark:fill-[#0B3122]" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`} strokeWidth={1.5} />
-            <span className={`text-xs sm:text-sm font-medium ${isUnder250 ? "text-[#0B3122] dark:text-[#0B3122] font-semibold" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`}>
+            <Tag className={`h-5 w-5 transition-transform duration-200 ${isUnder250 ? "text-[#0B3122] dark:text-emerald-400 fill-[#0B3122] dark:fill-emerald-400 scale-105" : "text-gray-500 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-emerald-400"}`} strokeWidth={1.5} />
+            <span className={`text-[11px] font-medium ${isUnder250 ? "text-[#0B3122] dark:text-emerald-400 font-bold" : "text-gray-500 dark:text-gray-400"}`}>
               Discounts
             </span>
             {isUnder250 && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#0B3122] dark:bg-[#0B3122] rounded-b-full" />
+              <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#0B3122] dark:bg-emerald-400 rounded-full" />
             )}
           </Link>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
+          <div className="h-6 w-px bg-gray-200/80 dark:bg-gray-800" />
 
           {/* Orders Tab */}
           <Link
             to={isAuthenticated ? "/user/orders" : "/user/auth/login"}
             state={!isAuthenticated ? { redirectTo: "/user/orders" } : undefined}
-            className={`group flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isOrders
-                ? "text-[#0B3122] dark:text-[#0B3122]"
-                : "text-gray-600 dark:text-gray-400"
+            className={`group flex flex-1 flex-col items-center gap-1 px-2 py-1.5 transition-all duration-200 relative ${isOrders
+                ? "text-[#0B3122] dark:text-emerald-400"
+                : "text-gray-500 dark:text-gray-400"
               }`}
           >
-            <ShoppingBag className={`h-5 w-5 ${isOrders ? "text-[#0B3122] dark:text-[#0B3122] fill-[#0B3122] dark:fill-[#0B3122]" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`} strokeWidth={1.5} />
-            <span className={`text-xs sm:text-sm font-medium ${isOrders ? "text-[#0B3122] dark:text-[#0B3122] font-semibold" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`}>
+            <ShoppingBag className={`h-5 w-5 transition-transform duration-200 ${isOrders ? "text-[#0B3122] dark:text-emerald-400 fill-[#0B3122] dark:fill-emerald-400 scale-105" : "text-gray-500 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-emerald-400"}`} strokeWidth={1.5} />
+            <span className={`text-[11px] font-medium ${isOrders ? "text-[#0B3122] dark:text-emerald-400 font-bold" : "text-gray-500 dark:text-gray-400"}`}>
               Order
             </span>
             {isOrders && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#0B3122] dark:bg-[#0B3122] rounded-b-full" />
+              <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#0B3122] dark:bg-emerald-400 rounded-full" />
             )}
           </Link>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-gray-300 dark:bg-gray-700" />
+          <div className="h-6 w-px bg-gray-200/80 dark:bg-gray-800" />
 
           {/* Profile Tab */}
           <Link
             to={isAuthenticated ? "/food/user/profile" : "/user/auth/login"}
             state={!isAuthenticated ? { redirectTo: "/food/user/profile" } : undefined}
-            className={`group flex flex-1 flex-col items-center gap-1.5 px-2 sm:px-3 py-2 transition-all duration-200 relative ${isProfile
-                ? "text-[#0B3122] dark:text-[#0B3122]"
-                : "text-gray-600 dark:text-gray-400"
+            className={`group flex flex-1 flex-col items-center gap-1 px-2 py-1.5 transition-all duration-200 relative ${isProfile
+                ? "text-[#0B3122] dark:text-emerald-400"
+                : "text-gray-500 dark:text-gray-400"
               }`}
           >
-            <User className={`h-5 w-5 ${isProfile ? "text-[#0B3122] dark:text-[#0B3122] fill-[#0B3122] dark:fill-[#0B3122]" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`} />
-            <span className={`text-xs sm:text-sm font-medium ${isProfile ? "text-[#0B3122] dark:text-[#0B3122] font-semibold" : "text-gray-600 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-[#0B3122]"}`}>
+            <User className={`h-5 w-5 transition-transform duration-200 ${isProfile ? "text-[#0B3122] dark:text-emerald-400 fill-[#0B3122] dark:fill-emerald-400 scale-105" : "text-gray-500 dark:text-gray-400 group-hover:text-[#0B3122] dark:group-hover:text-emerald-400"}`} />
+            <span className={`text-[11px] font-medium ${isProfile ? "text-[#0B3122] dark:text-emerald-400 font-bold" : "text-gray-500 dark:text-gray-400"}`}>
               Profile
             </span>
             {isProfile && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#0B3122] dark:bg-[#0B3122] rounded-b-full" />
+              <div className="absolute top-0 left-3 right-3 h-0.5 bg-[#0B3122] dark:bg-emerald-400 rounded-full" />
             )}
           </Link>
         </div>

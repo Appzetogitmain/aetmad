@@ -5,7 +5,7 @@ const foodTransactionSchema = new mongoose.Schema({
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'FoodOrder', required: true, unique: true, index: true },
     orderType: {
         type: String,
-        enum: ['food', 'quick', 'mixed'],
+        enum: ['food', 'quick', 'mixed', 'delivery', 'takeaway'],
         default: 'food',
         index: true
     },

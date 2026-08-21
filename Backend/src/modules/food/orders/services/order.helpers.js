@@ -308,14 +308,18 @@ export async function notifyRestaurantNewOrder(orderDoc) {
 }
 
 export const STATUS_PRIORITY = {
+  placed: 5,
   created: 10,
+  scheduled: 15,
   confirmed: 20,
   preparing: 30,
   ready_for_pickup: 40,
+  ready: 40,
   reached_pickup: 50,
   picked_up: 60,
   reached_drop: 70,
   delivered: 80,
+  completed: 80,
   cancelled_by_user: 100,
   cancelled_by_restaurant: 100,
   cancelled_by_admin: 100,
@@ -335,10 +339,10 @@ export function isStatusAdvance(current, next) {
   // Terminal states (100) cannot transition to anything else
   if (currentPrio >= 100) return false;
   
-  // Delivered (80) cannot transition to anything (except maybe cancellation if allowed, but here we say no)
-  if (currentPrio === 80) return false;
+  // Delivered / Completed (80) cannot transition to anything
+  if (currentPrio >= 80 && currentPrio < 100) return false;
 
-  // Special case: Cancellation is almost always an advance unless already delivered
+  // Special case: Cancellation is almost always an advance unless already delivered/completed
   if (nextPrio === 100 && currentPrio < 80) return true;
 
   return nextPrio > currentPrio;

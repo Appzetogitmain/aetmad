@@ -17,6 +17,8 @@ const feeSettingsSchema = new mongoose.Schema(
         freeDeliveryThreshold: { type: Number, min: 0 },
         platformFee: { type: Number, min: 0 },
         gstRate: { type: Number, min: 0, max: 100 },
+        takeawayPlatformFee: { type: Number, min: 0 },
+        gstOnTakeawayPlatformFee: { type: Number, min: 0, max: 100 },
         mixedOrderDistanceLimit: { type: Number, min: 0, default: 2 },
         mixedOrderAngleLimit: { type: Number, min: 0, default: 35 },
         isIncentiveEnabled: { type: Boolean, default: false },
